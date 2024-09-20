@@ -1,0 +1,36 @@
+
+{% set data = load_setup_py_data() %}
+
+
+package:
+    name    : guarneri
+
+    version : {{ data.get('version') }}
+
+
+source:
+    path: ..
+
+build:
+    number: 1
+    noarch: python
+
+requirements:
+    build:
+      - python >=3.11
+      - setuptools
+
+    run:
+      - python >=3.11
+
+test:
+    imports:
+      - guarneri
+
+    requires:
+      - pytest
+
+about:
+  home: https://github.com/spc-group/guarneri
+  license: All rights reserved
+  summary: guarneri
