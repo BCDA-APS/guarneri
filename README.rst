@@ -145,7 +145,14 @@ The following will download the package and load it into the python environment.
 .. code-block:: bash
 
     git clone https://github.com/spc-group/guarneri
-    pip install -e guarneri
+    pip install guarneri
+
+For development of guarneri, install as an editable project with all
+development dependencies using:
+
+.. code-block:: bash
+
+    pip install -e ".[dev]"
 
 
 Running the Tests
