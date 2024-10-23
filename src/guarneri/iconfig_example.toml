@@ -1,0 +1,23 @@
+[beamline]
+name = "APS Beamline (sector unknown)"
+# Whether to connect to hardware (true) or use mocked signals (false)
+hardware_is_present = false
+
+
+[[ async_device ]]
+scaler_prefix = "255idcVME:3820:"
+scaler_channel = 2
+preamp_prefix = "255idc:SR03:"
+voltmeter_prefix = "255idc:LabJackT7_1:"
+voltmeter_channel = 1
+# From V2F100: Fmax / Vmax
+counts_per_volt_second = 10e6
+name = "I0"
+
+
+[[ threaded_device ]]
+prefix = ""
+name = ""
+
+[[ factory_device ]]
+num_devices = 5
