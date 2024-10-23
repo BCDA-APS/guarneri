@@ -29,7 +29,6 @@ Let's say **you have some ophyd and ophyd-async devices** defined
 specific to guarneri, just regular Ophyd.
 
 .. code-block:: python
-   :caption: devices.py
 
     from ophyd_async.epics import epics_signal_rw
     from ophyd_async.core import AsyncDevice
@@ -61,7 +60,6 @@ arguments of a factory that returns a device.
 
 
 .. code-block:: toml
-   :caption: instrument.toml
 
     [my_device.device1]
     prefix = '255id:'
@@ -77,7 +75,6 @@ Then in your beamline startup code, create a Guarneri instrument and
 load the config files.
 
 .. code-block:: python
-   :caption: instrument.py
 
     from io import StringIO
 		
