@@ -3,7 +3,6 @@
 import asyncio
 import inspect
 import logging
-import os
 import time
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -50,49 +49,116 @@ class Instrument:
 
     """
 
-    devices: list
-    registry: Registry
-    beamline_name: str = ""
-    hardware_is_present: bool | None = None
+    devices: Registry
 
     def __init__(self, device_classes: Mapping, registry: Registry | None = None):
-        self.devices = []
+        self.unconnected_devices = []
         if registry is None:
             registry = Registry(auto_register=False, use_typhos=False)
-        self.registry = registry
+        self.devices = registry
         self.device_classes = device_classes
 
-    def parse_toml_file(self, fd):
-        """Parse TOML instrument configuration and create devices.
+    def parse_config(self, config_file: Path | str) -> list[dict]:
+        """Parse an instrument configuration file.
 
-        An open file descriptor
+        This method can be overridden to implement custom
+        configuration file schema. It should return a sequence of
+        device definitions, similar to:
+
+        .. code-block:: python
+
+            [
+                {
+                   "device_class": "ophyd.motor.EpicsMotor",
+                   "args": (),
+                   "kwargs": {
+                       "name": "my_device",
+                       "prefix": "255idcVME:m1",
+                    },
+                }
+            ]
+
+        *device_class* can be an entry in the
+        ``Instrument.device_classes``, or else an import path that
+        will be loaded dynamically.
+
+        Parameters
+        ==========
+        config_file
+          A file path to read.
+
+        Returns
+        =======
+        device_defns
+          A list of dictionaries, describing the devices to create.
+
         """
-        config = tomlkit.load(fd)
-        # Set global parameters
-        beamline = config.get("beamline", {})
-        self.beamline_name = beamline.get("name", self.beamline_name)
-        self.hardware_is_present = beamline.get(
-            "hardware_is_present", self.hardware_is_present
-        )
-        # Make devices from config file
-        return self.parse_config(config)
+        if config_file.suffix == ".toml":
+            return self.parse_toml_file(config_file)
+        else:
+            raise ValueError(f"Unknown file extension: {config_file}")
 
-    def parse_config(self, cfg):
+    def parse_toml_file(self, config_file: Path | str):
+        """Produce device definitions from a TOML file.
+
+        See ``parse_config()`` for details.
+
+        """
+        # Load the file from disk
+        with open(config_file, mode="rt", encoding="utf-8") as fd:
+            cfg = tomlkit.load(fd)
+        # Convert file contents to device definitions
+        device_defns = []
+        sections = {
+            key: val for key, val in cfg.items() if isinstance(val, tomlkit.items.AoT)
+        }
+        tables = [(cls, table) for cls, aot in sections.items() for table in aot]
+        device_defns = [
+            {
+                "device_class": class_name,
+                "args": (),
+                "kwargs": table,
+            }
+            for class_name, table in tables
+        ]
+        return device_defns
+
+    def make_devices(self, defns: Sequence[Mapping], fake: bool):
+        """Create Device instances based on device definitions.
+
+        Parameters
+        ==========
+        defns
+          The device defitions need to create devices. Each one should
+          have the keys "device_class", *args*, and *kwargs*.
+
+        Returns
+        =======
+        devices
+          The Ophyd and ophyd-async devices created from *defintions*.
+
+        """
+        # Validate all the defitions
+        for defn in defns:
+            Klass = self.device_classes[defn["device_class"]]
+            self.validate_params(defn["kwargs"], Klass)
+        # Create devices
         devices = []
-        for key, Klass in self.device_classes.items():
-            # Create the devices
-            for params in cfg.get(key, []):
-                print(Klass, params)
-                self.validate_params(params, Klass)
-                device = self.make_device(params, Klass)
-                try:
-                    # Maybe its a list of devices?
-                    devices.extend(device)
-                except TypeError:
-                    # No, assume it's just a single device then
-                    devices.append(device)
-        # Save devices for connecting to later
-        self.devices.extend(devices)
+        for defn in defns:
+            Klass = self.device_classes[defn["device_class"]]
+            self.validate_params(defn["kwargs"], Klass)
+            device = self.make_device(
+                Klass,
+                args=defn.get("args", ()),
+                kwargs=defn.get("kwargs", {}),
+                fake=fake,
+            )
+            try:
+                # Maybe its a list of devices?
+                devices.extend(device)
+            except TypeError:
+                # No, assume it's just a single device then
+                devices.append(device)
         return devices
 
     def validate_params(self, params, Klass):
@@ -128,27 +194,26 @@ class Instrument:
                         f"`{type(params[key])}`."
                     )
 
-    def make_device(self, params, Klass):
-        """Create the devices from their parameters."""
+    def make_device(self, Klass, args, kwargs, fake: bool):
+        """Create a device from its parameters."""
         # Mock threaded ophyd devices if necessary
         try:
             is_threaded_device = issubclass(Klass, ThreadedDevice)
         except TypeError:
             is_threaded_device = False
-        if is_threaded_device and not self.hardware_is_present:
+        if is_threaded_device and fake:
             Klass = make_fake_device(Klass)
         # Turn the parameters into pure python objects
-        kwargs = {}
-        for key, param in params.items():
-            if isinstance(param, tomlkit.items.Item):
-                kwargs[key] = param.unwrap()
-            else:
-                kwargs[key] = param
-        # Check if we need to injec the registry
-        extra_params = {}
+        Item = tomlkit.items.Item
+        args = (arg.unwrap() if isinstance(arg, Item) else arg for arg in args)
+        kwargs = {
+            key: arg.unwrap() if isinstance(arg, Item) else arg
+            for key, arg in kwargs.items()
+        }
+        # Check if we need to inject the registry
         sig = inspect.signature(Klass)
         if "registry" in sig.parameters.keys():
-            kwargs["registry"] = self.registry
+            kwargs.setdefault("registry", self.registry)
         # Create the device
         result = Klass(**kwargs)
         return result
@@ -172,12 +237,16 @@ class Instrument:
           Time to wait before failing with a TimeoutError.
         force_reconnect
           Force the signals to establish a new connection.
+        return_exceptions
+          If true, exceptions will be returned for further processing,
+          otherwise, exceptions will be raised (default).
+
         """
         t0 = time.monotonic()
         # Sort out which devices are which
         threaded_devices = []
         async_devices = []
-        for device in self.devices:
+        for device in self.unconnected_devices:
             if hasattr(device, "connect"):
                 async_devices.append(device)
             else:
@@ -195,6 +264,7 @@ class Instrument:
             if result is None:
                 log.debug(f"Successfully connected device {device.name}")
                 new_devices.append(device)
+                self.unconnected_devices.remove(device)
             else:
                 # Unexpected exception, raise it so it can be handled
                 log.debug(f"Failed connection for device {device.name}")
@@ -206,6 +276,8 @@ class Instrument:
             connected_devices = [
                 dev for dev in threaded_devices if getattr(dev, "connected", True)
             ]
+            for device in connected_devices:
+                self.unconnected_devices.remove(device)
             new_devices.extend(connected_devices)
             threaded_devices = [
                 dev for dev in threaded_devices if dev not in connected_devices
@@ -226,71 +298,44 @@ class Instrument:
             raise NotConnected(exceptions)
         return new_devices
 
-    async def load(
+    def load(
         self,
-        connect: bool = True,
+        config_file: Path | str,
+        *,
+        fake: bool = False,
         device_classes: Mapping | None = None,
-        config_files: Sequence[Path] | None = None,
         return_exceptions: bool = False,
     ):
-        """Load instrument specified in config files.
-
-        Unless, explicitly overridden by the *config_files* argument,
-        configuration files are read from the environmental variable
-        HAVEN_CONFIG_FILES (separated by ':').
+        """Load instrument specified in config file.
 
         Parameters
         ==========
+        config_files
+          A file path that will be loaded.
         connect
           If true, establish connections for the devices now.
+        fake
+          If true, simulated Ophyd devices will be created. Use
+          ``connect(mock=True)`` for ophyd-async devices.
         device_classes
           A temporary set of device classes to use for this call
           only. Overrides any device classes given during
           initalization.
-        config_files
-          I list of file paths that will be loaded. If omitted, those
-          files listed in HAVEN_CONFIG_FILES will be used.
-        return_exceptions
-          If true, exceptions will be returned for further processing,
-          otherwise, exceptions will be raised (default).
 
         """
-        self.devices = []
-        # Decide which config files to use
-        if config_files is None:
-            env_key = "HAVEN_CONFIG_FILES"
-            if env_key in os.environ.keys():
-                config_files = os.environ.get("HAVEN_CONFIG_FILES", "")
-                config_files = [Path(fp) for fp in config_files.split(":")]
-            else:
-                config_files = [
-                    Path(__file__).parent.resolve() / "iconfig_testing.toml"
-                ]
         # Load the instrument from config files
         old_classes = self.device_classes
+        # Temprary override of device classes
+        if device_classes is not None:
+            self.device_classes = device_classes
         try:
-            # Temprary override of device classes
-            if device_classes is not None:
-                self.device_classes = device_classes
-            # Parse TOML files
-            for fp in config_files:
-                with open(fp, mode="tr", encoding="utf-8") as fd:
-                    self.parse_toml_file(fd)
+            # Parse device configuration files
+            device_defns = self.parse_config(config_file)
         finally:
             self.device_classes = old_classes
-        # Connect the devices
-        if connect:
-            new_devices, exceptions = await self.connect(
-                mock=not self.hardware_is_present, return_exceptions=True
-            )
-        else:
-            new_devices = self.devices
-            exceptions = []
-        # Registry devices
-        for device in new_devices:
-            self.registry.register(device)
-        # Raise exceptions
-        if return_exceptions:
-            return exceptions
-        elif len(exceptions) > 0:
-            raise NotConnected(exceptions)
+        # Create device objects
+        devices = self.make_devices(device_defns, fake=fake)
+        # Store the connected devices
+        self.unconnected_devices.extend(devices)
+        for device in devices:
+            self.devices.register(device)
