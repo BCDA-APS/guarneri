@@ -220,10 +220,12 @@ class Instrument:
             key: arg.unwrap() if isinstance(arg, Item) else arg
             for key, arg in kwargs.items()
         }
-        # Check if we need to inject the registry
+        # Check if we need to inject additional arguments
         sig = inspect.signature(Klass)
         if "registry" in sig.parameters.keys():
             kwargs.setdefault("registry", self.registry)
+        if "fake" in sig.parameters.keys():
+            kwargs.setdefault("fake", fake)
         # Create the device
         result = Klass(**kwargs)
         return result
