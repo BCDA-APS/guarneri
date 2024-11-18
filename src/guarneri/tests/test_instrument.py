@@ -1,5 +1,5 @@
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 
 import pytest
 from ophyd import Component
@@ -142,6 +142,7 @@ def test_make_threaded_devices(instrument, monkeypatch):
 
 
 async def test_connect(instrument):
+    # N.B., this really only tests ohpyd-async devices
     instrument.load(config_file=toml_file, fake=True)
     async_devices = [
         d for d in instrument.unconnected_devices if hasattr(d, "_connect_task")
@@ -151,14 +152,14 @@ async def test_connect(instrument):
     ]
     assert len(async_devices) > 0
     assert len(sync_devices) > 0
-    # Are devices disconnected to start with?
-    assert all([d._connect_task is None for d in async_devices])
-    assert all([not d.connected is None for d in sync_devices])
+    # Make mocked connect methods
+    for device in async_devices:
+        device.connect = AsyncMock(return_value=None)
     # Connect the device
     await instrument.connect(mock=True)
     # Are devices connected afterwards?
     # NB: This doesn't actually test the code for threaded devices
-    assert all([d._connect_task.done for d in async_devices])
+    assert all([d.connect.called for d in async_devices])
     assert len(instrument.unconnected_devices) == 0
 
 

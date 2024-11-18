@@ -291,6 +291,7 @@ class Instrument:
                 device.wait_for_connection(timeout=0)
             except TimeoutError as exc:
                 exceptions[device.name] = NotConnected(str(exc))
+        print(exceptions)
         # Raise exceptions if any were present
         if return_exceptions:
             return new_devices, exceptions
