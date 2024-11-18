@@ -94,8 +94,9 @@ def test_validate_wrong_types(instrument):
         instrument.validate_params(defn, AsyncDevice)
 
 
-def test_parse_config(instrument):
-    cfg = instrument.parse_config(toml_file)
+@pytest.mark.parametrize("cfg_file", [toml_file, str(toml_file)])
+def test_parse_config(cfg_file, instrument):
+    cfg = instrument.parse_config(cfg_file)
     assert len(cfg) > 0
     dfn = cfg[0]
     assert dfn["device_class"] == "async_device"

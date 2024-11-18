@@ -93,6 +93,7 @@ class Instrument:
           A list of dictionaries, describing the devices to create.
 
         """
+        config_file = Path(config_file)
         if config_file.suffix == ".toml":
             return self.parse_toml_file(config_file)
         if config_file.suffix == ".yaml":
