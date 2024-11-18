@@ -29,12 +29,12 @@ class Instrument:
 
     Example:
 
-    ```python
-    instrument = Instrument({
-      "ion_chamber": IonChamber
-      "motors": load_motors,
-    })
-    ```
+    .. code-block:: python
+
+        instrument = Instrument({
+          "ion_chamber": IonChamber
+          "motors": load_motors,
+        })
 
     The values in *device_classes* should be one of the following:
 
@@ -95,10 +95,20 @@ class Instrument:
         """
         if config_file.suffix == ".toml":
             return self.parse_toml_file(config_file)
+        if config_file.suffix == ".yaml":
+            return self.parse_yaml_file(config_file)
         else:
             raise ValueError(f"Unknown file extension: {config_file}")
 
-    def parse_toml_file(self, config_file: Path | str):
+    def parse_yaml_file(self, config_file: Path | str) -> list[dict]:
+        """Produce device definitions from a YAML file.
+
+        See ``parse_config()`` for details.
+
+        """
+        raise NotImplementedError
+
+    def parse_toml_file(self, config_file: Path | str) -> list[dict]:
         """Produce device definitions from a TOML file.
 
         See ``parse_config()`` for details.
@@ -324,6 +334,7 @@ class Instrument:
           initalization.
 
         """
+        config_file = Path(config_file)
         # Load the instrument from config files
         old_classes = self.device_classes
         # Temprary override of device classes
