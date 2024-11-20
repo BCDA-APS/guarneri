@@ -61,13 +61,16 @@ arguments of a factory that returns a device.
 
 .. code-block:: toml
 
-    [my_device.device1]
+    [[ my_device ]]
+    name = "device1"
     prefix = '255id:'
     
-    [async_device.device3]
+    [[ async_device ]]
+    name = "device3"
     prefix = '255id:'
 
-    [area_detector.sim_det]
+    [[ area_detector ]]
+    name = "sim_det"
     hdf = true
 
 
@@ -141,7 +144,6 @@ The following will download the package and load it into the python environment.
 
 .. code-block:: bash
 
-    git clone https://github.com/spc-group/guarneri
     pip install guarneri
 
 For development of guarneri, install as an editable project with all
@@ -149,6 +151,7 @@ development dependencies using:
 
 .. code-block:: bash
 
+    git clone https://github.com/spc-group/guarneri
     pip install -e ".[dev]"
 
 
