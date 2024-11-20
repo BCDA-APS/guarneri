@@ -95,7 +95,7 @@ class Instrument:
         config_file = Path(config_file)
         if config_file.suffix == ".toml":
             return self.parse_toml_file(config_file)
-        if config_file.suffix == ".yaml":
+        if config_file.suffix.lower() in (".yaml", ".yml"):
             return self.parse_yaml_file(config_file)
         else:
             raise ValueError(f"Unknown file extension: {config_file}")
