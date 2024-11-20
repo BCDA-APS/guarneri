@@ -2,10 +2,12 @@ Welcome to guarneri's documentation!
 ===========================================================
 
 .. toctree::
-    :maxdepth: 2
-    :caption: Contents:
+   :maxdepth: 2
+   :caption: Contents:
 
-    api
+   tutorials/index
+   how_to_guides/index
+   api
 
 .. toctree::
     :maxdepth: 1
