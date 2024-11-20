@@ -80,7 +80,9 @@ load the config files.
 .. code-block:: python
 
     from io import StringIO
-		
+    
+    from guarneri import Instrument
+    
     from devices import MyDevice, MyAsyncDevice, area_detector_factory
     
     # Prepare the instrument device
@@ -89,12 +91,12 @@ load the config files.
 	"async_device": MyAsyncDevice,
 	"area_detector": area_detector_factory,
     })
-
+    
     # Create the devices from the TOML configuration file
     instrument.load_config_files("instrument.toml")
     # Optionally connect all the devices
-    await instrument.connect_devices()
-
+    await instrument.connect()
+    
     # Now use the devices for science!
     instrument.devices['device_1'].description.get()
 
