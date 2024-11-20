@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "guarneri"
-version = "0.0.1"
+version = "0.1.0"
 authors = [
   { name="Mark Wolfman", email="wolfman@anl.gov" },
 ]
@@ -22,7 +22,7 @@ keywords = []
 dependencies = ["ophyd", "ophyd-async", "ophyd-registry", "tomlkit"]
 
 [project.optional-dependencies]
-dev = ["black", "pytest", "pytest-asyncio", "flake8", "isort", "pydata-sphinx-theme"]
+dev = ["black", "pytest", "pytest-asyncio", "flake8", "isort", "pydata-sphinx-theme", "build", "twine"]
 
 [project.urls]
 Homepage = "https://github.com/spc-group/guarneri"
