@@ -70,7 +70,6 @@ class Instrument:
             [
                 {
                    "device_class": "ophyd.motor.EpicsMotor",
-                   "args": (),
                    "kwargs": {
                        "name": "my_device",
                        "prefix": "255idcVME:m1",
@@ -141,7 +140,7 @@ class Instrument:
         ==========
         defns
           The device defitions need to create devices. Each one should
-          have the keys "device_class", *args*, and *kwargs*.
+          at least have the keys "device_class", and "kwargs".
 
         Returns
         =======
@@ -182,9 +181,9 @@ class Instrument:
         for key, sig_param in sig.parameters.items():
             # Check for missing parameters
             param_missing = key not in params
+            VAR_ARGS = [sig_param.VAR_KEYWORD, sig_param.VAR_POSITIONAL]
             param_required = (
-                sig_param.default is sig_param.empty
-                and sig_param.kind != sig_param.VAR_KEYWORD
+                sig_param.default is sig_param.empty and sig_param.kind not in VAR_ARGS
             )
             if param_missing and param_required:
                 raise InvalidConfiguration(
@@ -205,8 +204,22 @@ class Instrument:
                         f"`{type(params[key])}`."
                     )
 
-    def make_device(self, Klass, args, kwargs, fake: bool):
-        """Create a device from its parameters."""
+    def make_device(self, Klass: type, args: Sequence, kwargs: Mapping, fake: bool):
+        """Create a device from its parameters.
+
+        Parameters
+        ==========
+        Klass
+          The thing to call to create the device.
+        args
+          Positional arguments for creating the device.
+        kwargs
+          Keyword arguments for creating the device.
+        fake
+          If true, a fake device will be created instead of the real
+          one. See :py:func:`ophyd.sim.make_fake_device`.
+
+        """
         # Mock threaded ophyd devices if necessary
         try:
             is_threaded_device = issubclass(Klass, ThreadedDevice)

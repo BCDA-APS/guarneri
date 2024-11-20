@@ -39,7 +39,6 @@ with the following structure:
 
    {
       "device_class": "ophyd.motor.EpicsMotor",
-      "args": (),
       "kwargs": {
           "name": "my_device",
           "prefix": "255idcVME:m1",
@@ -74,7 +73,6 @@ configuration.
            return [
                {
                    "device_class": "ophyd.motor.EpicsMotor",
-                   "args": (),
                    "kwargs": {
                        "name": "my_device",
                        "prefix": "255idcVME:m1",

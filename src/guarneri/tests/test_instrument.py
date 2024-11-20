@@ -27,8 +27,10 @@ class AsyncDevice(Device):
         counts_per_volt_second: float,
         name="",
         auto_name: bool = None,
+        *args,
+        **kwargs,
     ):
-        super().__init__(name=name)
+        super().__init__(name=name, *args, **kwargs)
 
 
 def load_devices(num_devices=0):
