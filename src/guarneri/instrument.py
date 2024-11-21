@@ -246,7 +246,7 @@ class Instrument:
         # Check if we need to inject additional arguments
         sig = inspect.signature(Klass)
         if "registry" in sig.parameters.keys():
-            kwargs.setdefault("registry", self.registry)
+            kwargs.setdefault("registry", self.devices)
         if "fake" in sig.parameters.keys():
             kwargs.setdefault("fake", fake)
         # Create the device
@@ -326,7 +326,9 @@ class Instrument:
                 device.wait_for_connection(timeout=0)
             except TimeoutError as exc:
                 exceptions[device.name] = NotConnected(str(exc))
-        print(exceptions)
+        # Re-register devices in case their names or labels changed
+        for device in new_devices:
+            self.devices.register(device)
         # Raise exceptions if any were present
         if return_exceptions:
             return new_devices, exceptions
@@ -362,16 +364,16 @@ class Instrument:
         config_file = Path(config_file)
         # Load the instrument from config files
         old_classes = self.device_classes
+        # Parse device configuration files
+        device_defns = self.parse_config(config_file)
         # Temprary override of device classes
         if device_classes is not None:
             self.device_classes = device_classes
         try:
-            # Parse device configuration files
-            device_defns = self.parse_config(config_file)
+            # Create device objects
+            devices = self.make_devices(device_defns, fake=fake)
         finally:
             self.device_classes = old_classes
-        # Create device objects
-        devices = self.make_devices(device_defns, fake=fake)
         # Store the connected devices
         self.unconnected_devices.extend(devices)
         for device in devices:
