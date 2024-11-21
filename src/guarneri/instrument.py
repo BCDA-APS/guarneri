@@ -4,6 +4,7 @@ import asyncio
 import inspect
 import logging
 import time
+import warnings
 from pathlib import Path
 from typing import Mapping, Sequence
 
@@ -150,13 +151,21 @@ class Instrument:
         """
         # Validate all the defitions
         for defn in defns:
-            Klass = self.device_classes[defn["device_class"]]
+            try:
+                Klass = self.device_classes[defn["device_class"]]
+            except KeyError:
+                continue
             self.validate_params(defn["kwargs"], Klass)
         # Create devices
         devices = []
         for defn in defns:
-            Klass = self.device_classes[defn["device_class"]]
-            self.validate_params(defn["kwargs"], Klass)
+            # Check if we know how to make the device
+            try:
+                Klass = self.device_classes[defn["device_class"]]
+            except KeyError as exc:
+                warnings.warn(f"Unknown device class: {exc}")
+                continue
+            # Create the device
             device = self.make_device(
                 Klass,
                 args=defn.get("args", ()),
