@@ -4,6 +4,7 @@ import asyncio
 import inspect
 import logging
 import time
+import warnings
 from pathlib import Path
 from typing import Mapping, Sequence
 
@@ -38,6 +39,11 @@ class Instrument:
 
     The values in *device_classes* should be one of the following:
 
+    *ignored_classes* can be used to avoid sections in the
+    configuration file that are needed for other things. If provided,
+    sections whose ``"device_class"`` is included in *ignored_classes*
+    will be skipped.
+
     1. A device class
     2. A callable that returns an instantiated device object
     3. A callable that returns a sequence of device objects
@@ -46,17 +52,31 @@ class Instrument:
     ==========
     device_classes
       Maps config section names to device classes.
+    registry
+      An ophyd registry to use, if omitted a new registry will be
+      created. This registry will be available as
+      `Instrument.devices`.
+    ignored_classes
+      Class names to ignore if they are present in the config file.
 
     """
 
     devices: Registry
 
-    def __init__(self, device_classes: Mapping, registry: Registry | None = None):
+    def __init__(
+        self,
+        device_classes: Mapping,
+        registry: Registry | None = None,
+        ignored_classes: Sequence[str] | None = None,
+    ):
         self.unconnected_devices = []
         if registry is None:
             registry = Registry(auto_register=False, use_typhos=False)
         self.devices = registry
         self.device_classes = device_classes
+        if ignored_classes is None:
+            ignored_classes = []
+        self.ignored_classes = ignored_classes
 
     def parse_config(self, config_file: Path | str) -> list[dict]:
         """Parse an instrument configuration file.
@@ -150,13 +170,23 @@ class Instrument:
         """
         # Validate all the defitions
         for defn in defns:
-            Klass = self.device_classes[defn["device_class"]]
+            try:
+                Klass = self.device_classes[defn["device_class"]]
+            except KeyError:
+                continue
             self.validate_params(defn["kwargs"], Klass)
         # Create devices
         devices = []
         for defn in defns:
-            Klass = self.device_classes[defn["device_class"]]
-            self.validate_params(defn["kwargs"], Klass)
+            if defn["device_class"] in self.ignored_classes:
+                continue
+            # Check if we know how to make the device
+            try:
+                Klass = self.device_classes[defn["device_class"]]
+            except KeyError as exc:
+                warnings.warn(f"Unknown device class: {exc}")
+                continue
+            # Create the device
             device = self.make_device(
                 Klass,
                 args=defn.get("args", ()),
@@ -237,7 +267,7 @@ class Instrument:
         # Check if we need to inject additional arguments
         sig = inspect.signature(Klass)
         if "registry" in sig.parameters.keys():
-            kwargs.setdefault("registry", self.registry)
+            kwargs.setdefault("registry", self.devices)
         if "fake" in sig.parameters.keys():
             kwargs.setdefault("fake", fake)
         # Create the device
@@ -317,7 +347,9 @@ class Instrument:
                 device.wait_for_connection(timeout=0)
             except TimeoutError as exc:
                 exceptions[device.name] = NotConnected(str(exc))
-        print(exceptions)
+        # Re-register devices in case their names or labels changed
+        for device in new_devices:
+            self.devices.register(device)
         # Raise exceptions if any were present
         if return_exceptions:
             return new_devices, exceptions
@@ -331,6 +363,7 @@ class Instrument:
         *,
         fake: bool = False,
         device_classes: Mapping | None = None,
+        ignored_classes: Sequence[str] | None = None,
         return_exceptions: bool = False,
     ):
         """Load instrument specified in config file.
@@ -353,16 +386,20 @@ class Instrument:
         config_file = Path(config_file)
         # Load the instrument from config files
         old_classes = self.device_classes
+        old_ignored = self.ignored_classes
+        # Parse device configuration files
+        device_defns = self.parse_config(config_file)
         # Temprary override of device classes
         if device_classes is not None:
             self.device_classes = device_classes
+        if ignored_classes is not None:
+            self.ignored_classes = ignored_classes
         try:
-            # Parse device configuration files
-            device_defns = self.parse_config(config_file)
+            # Create device objects
+            devices = self.make_devices(device_defns, fake=fake)
         finally:
             self.device_classes = old_classes
-        # Create device objects
-        devices = self.make_devices(device_defns, fake=fake)
+            self.ignored_classes = old_ignored
         # Store the connected devices
         self.unconnected_devices.extend(devices)
         for device in devices:

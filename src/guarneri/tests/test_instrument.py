@@ -104,6 +104,15 @@ def test_parse_config(cfg_file, instrument):
     assert dfn["device_class"] == "async_device"
 
 
+def test_make_unknown_class(instrument):
+    """Check that unresolvable device classes only raise a warning."""
+    instrument.device_classes = {}
+    cfg = instrument.parse_config(toml_file)
+    assert len(cfg) > 0
+    dfn = cfg[0]
+    assert dfn["device_class"] == "async_device"
+
+
 def test_make_async_devices(instrument, monkeypatch):
     devices = instrument.make_devices(
         [
@@ -142,6 +151,24 @@ def test_make_threaded_devices(instrument, monkeypatch):
     )
     assert len(devices) == 1
     assert devices[0].name == "I0"
+
+
+def test_make_unknown_class(instrument):
+    """Check that unresolvable device classes only raise a warning."""
+    instrument.device_classes = {}
+    defns = [
+        {
+            "device_class": "tardis",
+            "kwargs": {
+                "name": "the tardis",
+            },
+        }
+    ]
+    with pytest.warns() as warned:
+        devices = instrument.make_devices(defns=defns, fake=True)
+    assert len(warned) == 1
+    assert "tardis" in str(warned[0].message)
+    assert len(devices) == 0
 
 
 async def test_connect(instrument):
