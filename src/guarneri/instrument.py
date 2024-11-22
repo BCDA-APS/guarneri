@@ -63,7 +63,12 @@ class Instrument:
 
     devices: Registry
 
-    def __init__(self, device_classes: Mapping, registry: Registry | None = None, ignored_classes: Sequence[str] | None = None):
+    def __init__(
+        self,
+        device_classes: Mapping,
+        registry: Registry | None = None,
+        ignored_classes: Sequence[str] | None = None,
+    ):
         self.unconnected_devices = []
         if registry is None:
             registry = Registry(auto_register=False, use_typhos=False)
@@ -173,7 +178,7 @@ class Instrument:
         # Create devices
         devices = []
         for defn in defns:
-            if defn['device_class'] in self.ignored_classes:
+            if defn["device_class"] in self.ignored_classes:
                 continue
             # Check if we know how to make the device
             try:

@@ -108,7 +108,6 @@ def test_make_unknown_class(instrument):
     """Check that unresolvable device classes only raise a warning."""
     instrument.device_classes = {}
     cfg = instrument.parse_config(toml_file)
-    print(cfg)
     assert len(cfg) > 0
     dfn = cfg[0]
     assert dfn["device_class"] == "async_device"
