@@ -27,7 +27,6 @@ instrument = None
 
 
 Device: TypeAlias = AsyncDevice | ThreadedDevice
-# DeviceClass = type[AsyncDevice] | type[ThreadedDevice]
 
 
 class Instrument:
