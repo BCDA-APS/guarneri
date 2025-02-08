@@ -25,12 +25,13 @@ class AsyncDevice(Device):
         voltmeter_prefix: str,
         voltmeter_channel: int,
         counts_per_volt_second: float,
-        name="",
-        auto_name: bool = None,
+        name: str="",
+        auto_name: bool | None = None,
         *args,
         **kwargs,
     ):
-        super().__init__(name=name, *args, **kwargs)
+        kwargs.setdefault("name", name)
+        super().__init__(*args, **kwargs)
 
 
 def load_devices(num_devices=0):
@@ -112,10 +113,20 @@ def test_parse_config(config_io, instrument):
 def test_make_unknown_class(instrument):
     """Check that unresolvable device classes only raise a warning."""
     instrument.device_classes = {}
-    cfg = instrument.parse_config(toml_file)
-    assert len(cfg) > 0
-    dfn = cfg[0]
-    assert dfn["device_class"] == "async_device"
+    defns = [
+        {
+            "device_class": "tardis",
+            "kwargs": {
+                "name": "the tardis",
+            },
+        }
+    ]
+    with pytest.warns() as warned:
+        devices = instrument.make_devices(defns=defns, fake=True)
+    assert len(warned) == 1
+    assert "tardis" in str(warned[0].message)
+    assert len(devices) == 0
+    
 
 
 def test_make_async_devices(instrument, monkeypatch):
@@ -156,24 +167,6 @@ def test_make_threaded_devices(instrument, monkeypatch):
     )
     assert len(devices) == 1
     assert devices[0].name == "I0"
-
-
-def test_make_unknown_class(instrument):
-    """Check that unresolvable device classes only raise a warning."""
-    instrument.device_classes = {}
-    defns = [
-        {
-            "device_class": "tardis",
-            "kwargs": {
-                "name": "the tardis",
-            },
-        }
-    ]
-    with pytest.warns() as warned:
-        devices = instrument.make_devices(defns=defns, fake=True)
-    assert len(warned) == 1
-    assert "tardis" in str(warned[0].message)
-    assert len(devices) == 0
 
 
 async def test_connect(instrument):

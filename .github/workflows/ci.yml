@@ -39,3 +39,5 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Haven tests with pytest in Xvfb
         run: pytest -vv
+      - name: Static type checking
+        run: mypy src/

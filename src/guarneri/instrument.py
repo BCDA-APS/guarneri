@@ -8,12 +8,12 @@ import warnings
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path
-from typing import IO
+from typing import IO, TypeAlias, cast
 
 import tomlkit
 from ophyd import Device as ThreadedDevice
 from ophyd.sim import make_fake_device
-from ophyd_async.core import DEFAULT_TIMEOUT, NotConnected
+from ophyd_async.core import DEFAULT_TIMEOUT, NotConnected, Device as AsyncDevice
 from ophydregistry import Registry
 
 from .exceptions import InvalidConfiguration
@@ -23,6 +23,9 @@ log = logging.getLogger(__name__)
 
 instrument = None
 
+
+Device: TypeAlias = AsyncDevice | ThreadedDevice
+# DeviceClass = type[AsyncDevice] | type[ThreadedDevice]
 
 class Instrument:
     """A beamline instrument built from config files of Ophyd devices.
@@ -67,11 +70,11 @@ class Instrument:
 
     def __init__(
         self,
-        device_classes: Mapping,
+        device_classes: Mapping[str, type[Device]],
         registry: Registry | None = None,
         ignored_classes: Sequence[str] | None = None,
     ):
-        self.unconnected_devices = []
+        self.unconnected_devices: list[Device] = []
         if registry is None:
             registry = Registry(auto_register=False, use_typhos=False)
         self.devices = registry
@@ -123,7 +126,7 @@ class Instrument:
         else:
             raise ValueError(f"Unknown file extension: {config_file}")
 
-    def parse_yaml_file(self, config_file: Path | str) -> list[dict]:
+    def parse_yaml_file(self, config_file: IO[str]) -> list[dict]:
         """Produce device definitions from a YAML file.
 
         See ``parse_config()`` for details.
@@ -131,7 +134,7 @@ class Instrument:
         """
         raise NotImplementedError
 
-    def parse_toml_file(self, config_file: Path | str) -> list[dict]:
+    def parse_toml_file(self, config_file: IO[str]) -> list[dict]:
         """Produce device definitions from a TOML file.
 
         See ``parse_config()`` for details.
@@ -261,7 +264,7 @@ class Instrument:
             Klass = make_fake_device(Klass)
         # Turn the parameters into pure python objects
         Item = tomlkit.items.Item
-        args = (arg.unwrap() if isinstance(arg, Item) else arg for arg in args)
+        args = [arg.unwrap() if isinstance(arg, Item) else arg for arg in args]
         kwargs = {
             key: arg.unwrap() if isinstance(arg, Item) else arg
             for key, arg in kwargs.items()
@@ -302,8 +305,8 @@ class Instrument:
         """
         t0 = time.monotonic()
         # Sort out which devices are which
-        threaded_devices = []
-        async_devices = []
+        threaded_devices: list[ThreadedDevice] = []
+        async_devices: list[AsyncDevice] = []
         for device in self.unconnected_devices:
             if hasattr(device, "connect"):
                 async_devices.append(device)
@@ -317,7 +320,7 @@ class Instrument:
         results = await asyncio.gather(*aws, return_exceptions=True)
         # Filter out the disconnected devices
         new_devices = []
-        exceptions = {}
+        exceptions: dict[str, Exception] = {}
         for device, result in zip(async_devices, results):
             if result is None:
                 log.debug(f"Successfully connected device {device.name}")
@@ -326,7 +329,7 @@ class Instrument:
             else:
                 # Unexpected exception, raise it so it can be handled
                 log.debug(f"Failed connection for device {device.name}")
-                exceptions[device.name] = result
+                exceptions[device.name] = cast(Exception, result)
         # Connect to threaded devices
         timeout_reached = False
         while not timeout_reached and len(threaded_devices) > 0:
@@ -368,15 +371,14 @@ class Instrument:
             "Please provide format as *config_format*."
         )
         try:
-            config_file = Path(config_file)
+            fp = Path(cast(Path | str, config_file))
         except TypeError:
             # Probably an open file so just use as is
             if config_format is None:
                 raise RuntimeError(bad_fmt_msg)
             yield (config_file, config_format)
-            return
         # Decide what format this file is in
-        suffix = config_file.suffix
+        suffix = fp.suffix
         formats = {
             ".yaml": "yaml",
             ".yml": "yaml",
@@ -387,7 +389,7 @@ class Instrument:
                 config_format = formats[suffix]
             except KeyError:
                 raise RuntimeError(bad_fmt_msg)
-        with open(config_file, mode="rt") as fd:
+        with open(fp, mode="rt") as fd:
             yield (fd, config_format)
 
     def load(

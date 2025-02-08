@@ -22,10 +22,15 @@ keywords = []
 dependencies = ["ophyd", "ophyd-async", "ophyd-registry", "tomlkit"]
 
 [project.optional-dependencies]
-dev = ["black", "pytest", "pytest-asyncio", "flake8", "isort", "pydata-sphinx-theme", "build", "twine"]
+dev = ["black", "pytest", "pytest-asyncio", "pytest-mypy", "flake8", "isort", "pydata-sphinx-theme", "build", "twine"]
 
 [project.urls]
 Homepage = "https://github.com/spc-group/guarneri"
 
 [project.scripts]
 # command = "guarneri.__main__:main"
+
+
+[[tool.mypy.overrides]]
+module = ["ophyd.*"]
+ignore_missing_imports = true
