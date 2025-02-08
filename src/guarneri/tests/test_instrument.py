@@ -25,7 +25,7 @@ class AsyncDevice(Device):
         voltmeter_prefix: str,
         voltmeter_channel: int,
         counts_per_volt_second: float,
-        name: str="",
+        name: str = "",
         auto_name: bool | None = None,
         *args,
         **kwargs,
@@ -126,7 +126,6 @@ def test_make_unknown_class(instrument):
     assert len(warned) == 1
     assert "tardis" in str(warned[0].message)
     assert len(devices) == 0
-    
 
 
 def test_make_async_devices(instrument, monkeypatch):

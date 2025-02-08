@@ -13,7 +13,9 @@ from typing import IO, TypeAlias, cast
 import tomlkit
 from ophyd import Device as ThreadedDevice
 from ophyd.sim import make_fake_device
-from ophyd_async.core import DEFAULT_TIMEOUT, NotConnected, Device as AsyncDevice
+from ophyd_async.core import DEFAULT_TIMEOUT
+from ophyd_async.core import Device as AsyncDevice
+from ophyd_async.core import NotConnected
 from ophydregistry import Registry
 
 from .exceptions import InvalidConfiguration
@@ -26,6 +28,7 @@ instrument = None
 
 Device: TypeAlias = AsyncDevice | ThreadedDevice
 # DeviceClass = type[AsyncDevice] | type[ThreadedDevice]
+
 
 class Instrument:
     """A beamline instrument built from config files of Ophyd devices.
