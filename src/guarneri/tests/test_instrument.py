@@ -96,9 +96,14 @@ def test_validate_wrong_types(instrument):
         instrument.validate_params(defn, AsyncDevice)
 
 
-@pytest.mark.parametrize("cfg_file", [toml_file, str(toml_file)])
-def test_parse_config(cfg_file, instrument):
-    cfg = instrument.parse_config(cfg_file)
+@pytest.fixture()
+def config_io():
+    with open(toml_file, mode="rt") as fd:
+        yield fd
+
+
+def test_parse_config(config_io, instrument):
+    cfg = instrument.parse_config(config_io, config_format="toml")
     assert len(cfg) > 0
     dfn = cfg[0]
     assert dfn["device_class"] == "async_device"

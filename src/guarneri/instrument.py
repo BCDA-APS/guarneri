@@ -5,8 +5,10 @@ import inspect
 import logging
 import time
 import warnings
+from collections.abc import Mapping, Sequence
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import IO
 
 import tomlkit
 from ophyd import Device as ThreadedDevice
@@ -78,7 +80,7 @@ class Instrument:
             ignored_classes = []
         self.ignored_classes = ignored_classes
 
-    def parse_config(self, config_file: Path | str) -> list[dict]:
+    def parse_config(self, config_file: IO[str], config_format: str) -> list[dict]:
         """Parse an instrument configuration file.
 
         This method can be overridden to implement custom
@@ -105,6 +107,8 @@ class Instrument:
         ==========
         config_file
           A file path to read.
+        config_format
+          The language in which the config file is written.
 
         Returns
         =======
@@ -112,10 +116,9 @@ class Instrument:
           A list of dictionaries, describing the devices to create.
 
         """
-        config_file = Path(config_file)
-        if config_file.suffix == ".toml":
+        if config_format == "toml":
             return self.parse_toml_file(config_file)
-        if config_file.suffix.lower() in (".yaml", ".yml"):
+        if config_format == "yaml":
             return self.parse_yaml_file(config_file)
         else:
             raise ValueError(f"Unknown file extension: {config_file}")
@@ -135,8 +138,7 @@ class Instrument:
 
         """
         # Load the file from disk
-        with open(config_file, mode="rt", encoding="utf-8") as fd:
-            cfg = tomlkit.load(fd)
+        cfg = tomlkit.load(config_file)
         # Convert file contents to device definitions
         device_defns = []
         sections = {
@@ -357,10 +359,42 @@ class Instrument:
             raise NotConnected(exceptions)
         return new_devices
 
+    @contextmanager
+    def open_config_file(
+        self, config_file: Path | str | IO[str], config_format: str | None
+    ):
+        bad_fmt_msg = (
+            f"Could not determine format of config file {config_file}. "
+            "Please provide format as *config_format*."
+        )
+        try:
+            config_file = Path(config_file)
+        except TypeError:
+            # Probably an open file so just use as is
+            if config_format is None:
+                raise RuntimeError(bad_fmt_msg)
+            yield (config_file, config_format)
+            return
+        # Decide what format this file is in
+        suffix = config_file.suffix
+        formats = {
+            ".yaml": "yaml",
+            ".yml": "yaml",
+            ".toml": "toml",
+        }
+        if config_format is None:
+            try:
+                config_format = formats[suffix]
+            except KeyError:
+                raise RuntimeError(bad_fmt_msg)
+        with open(config_file, mode="rt") as fd:
+            yield (fd, config_format)
+
     def load(
         self,
-        config_file: Path | str,
+        config_file: Path | str | IO[str],
         *,
+        config_format: str | None = None,
         fake: bool = False,
         device_classes: Mapping | None = None,
         ignored_classes: Sequence[str] | None = None,
@@ -370,10 +404,12 @@ class Instrument:
 
         Parameters
         ==========
-        config_files
-          A file path that will be loaded.
-        connect
-          If true, establish connections for the devices now.
+        config_file
+          A file path that will be loaded. Can be either a path to a
+          file, or the open file object itself.
+        config_format
+          Which kind of config file is in use. If ``None``, the format
+          will be interpreted from the file path.
         fake
           If true, simulated Ophyd devices will be created. Use
           ``connect(mock=True)`` for ophyd-async devices.
@@ -383,12 +419,13 @@ class Instrument:
           initalization.
 
         """
-        config_file = Path(config_file)
         # Load the instrument from config files
         old_classes = self.device_classes
         old_ignored = self.ignored_classes
+        # Decide which format to use
         # Parse device configuration files
-        device_defns = self.parse_config(config_file)
+        with self.open_config_file(config_file, config_format) as (fd, fmt):
+            device_defns = self.parse_config(fd, config_format=fmt)
         # Temprary override of device classes
         if device_classes is not None:
             self.device_classes = device_classes
