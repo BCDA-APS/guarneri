@@ -5,10 +5,10 @@ import inspect
 import logging
 import time
 import warnings
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path
-from typing import IO, TypeAlias, cast
+from typing import IO, Any, Callable, TypeAlias, TypeVar, cast
 
 import tomlkit
 from ophyd import Device as ThreadedDevice
@@ -26,8 +26,8 @@ log = logging.getLogger(__name__)
 instrument = None
 
 
+K = TypeVar("K")
 Device: TypeAlias = AsyncDevice | ThreadedDevice
-# DeviceClass = type[AsyncDevice] | type[ThreadedDevice]
 
 
 class Instrument:
@@ -86,7 +86,7 @@ class Instrument:
             ignored_classes = []
         self.ignored_classes = ignored_classes
 
-    def parse_config(self, config_file: IO[str], config_format: str) -> list[dict]:
+    def parse_config(self, config_file: IO, config_format: str) -> list[dict]:
         """Parse an instrument configuration file.
 
         This method can be overridden to implement custom
@@ -161,7 +161,7 @@ class Instrument:
         ]
         return device_defns
 
-    def make_devices(self, defns: Sequence[Mapping], fake: bool):
+    def make_devices(self, defns: Sequence[Mapping], fake: bool) -> list[Device]:
         """Create Device instances based on device definitions.
 
         Parameters
@@ -184,7 +184,7 @@ class Instrument:
                 continue
             self.validate_params(defn["kwargs"], Klass)
         # Create devices
-        devices = []
+        devices: list[Device] = []
         for defn in defns:
             if defn["device_class"] in self.ignored_classes:
                 continue
@@ -209,12 +209,10 @@ class Instrument:
                 devices.append(device)
         return devices
 
-    def validate_params(self, params, Klass):
+    def validate_params(self, params: dict[str, Any], Klass: type[Device]):
         """Check that parameters match a Device class's initializer."""
         sig = inspect.signature(Klass)
-        has_kwargs = any(
-            [param.kind == param.VAR_KEYWORD for param in sig.parameters.values()]
-        )
+        any([param.kind == param.VAR_KEYWORD for param in sig.parameters.values()])
         # Make sure we're not missing any required parameters
         for key, sig_param in sig.parameters.items():
             # Check for missing parameters
@@ -242,7 +240,13 @@ class Instrument:
                         f"`{type(params[key])}`."
                     )
 
-    def make_device(self, Klass: type, args: Sequence, kwargs: Mapping, fake: bool):
+    def make_device(
+        self,
+        Klass: Callable | type,
+        args: Sequence[Any],
+        kwargs: Mapping[str, Any],
+        fake: bool,
+    ) -> Any:
         """Create a device from its parameters.
 
         Parameters
@@ -259,12 +263,11 @@ class Instrument:
 
         """
         # Mock threaded ophyd devices if necessary
-        try:
-            is_threaded_device = issubclass(Klass, ThreadedDevice)
-        except TypeError:
-            is_threaded_device = False
-        if is_threaded_device and fake:
-            Klass = make_fake_device(Klass)
+        if fake:
+            try:
+                Klass = make_fake_device(Klass)
+            except TypeError:
+                pass
         # Turn the parameters into pure python objects
         Item = tomlkit.items.Item
         args = [arg.unwrap() if isinstance(arg, Item) else arg for arg in args]
@@ -367,8 +370,8 @@ class Instrument:
 
     @contextmanager
     def open_config_file(
-        self, config_file: Path | str | IO[str], config_format: str | None
-    ):
+        self, config_file: Path | str | IO, config_format: str | None
+    ) -> Iterator[tuple[IO, str]]:
         bad_fmt_msg = (
             f"Could not determine format of config file {config_file}. "
             "Please provide format as *config_format*."
@@ -379,7 +382,7 @@ class Instrument:
             # Probably an open file so just use as is
             if config_format is None:
                 raise RuntimeError(bad_fmt_msg)
-            yield (config_file, config_format)
+            yield (cast(IO, config_file), config_format)
         # Decide what format this file is in
         suffix = fp.suffix
         formats = {
@@ -397,7 +400,7 @@ class Instrument:
 
     def load(
         self,
-        config_file: Path | str | IO[str],
+        config_file: Path | str | IO,
         *,
         config_format: str | None = None,
         fake: bool = False,
