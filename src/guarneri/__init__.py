@@ -9,3 +9,4 @@ __all__ = ["Instrument", "exceptions"]
 
 from . import exceptions
 from .instrument import Instrument
+from .parsers import parse_config

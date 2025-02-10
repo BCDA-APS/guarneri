@@ -103,13 +103,6 @@ def config_io():
         yield fd
 
 
-def test_parse_config(config_io, instrument):
-    cfg = instrument.parse_config(config_io, config_format="toml")
-    assert len(cfg) > 0
-    dfn = cfg[0]
-    assert dfn["device_class"] == "async_device"
-
-
 def test_make_unknown_class(instrument):
     """Check that unresolvable device classes only raise a warning."""
     instrument.device_classes = {}
@@ -191,13 +184,12 @@ async def test_connect(instrument):
 
 
 def test_load(monkeypatch):
-    instrument = Instrument({})
+    instrument = Instrument({}, parsers={"toml": MagicMock()})
     # Mock out the relevant methods to test
-    monkeypatch.setattr(instrument, "parse_toml_file", MagicMock())
     monkeypatch.setattr(instrument, "make_devices", MagicMock(return_value=[]))
     monkeypatch.setenv("HAVEN_CONFIG_FILES", str(toml_file), prepend=False)
     # Execute the loading step
     instrument.load(toml_file, fake=True)
     # Check that the right methods were called
-    instrument.parse_toml_file.assert_called_once()
+    instrument.parsers['toml'].assert_called_once()
     instrument.make_devices.assert_called_once()

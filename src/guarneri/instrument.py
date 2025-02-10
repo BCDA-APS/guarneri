@@ -5,6 +5,7 @@ import inspect
 import logging
 import time
 import warnings
+from collections import ChainMap
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path
@@ -19,6 +20,7 @@ from ophyd_async.core import NotConnected
 from ophydregistry import Registry
 
 from .exceptions import InvalidConfiguration
+from guarneri.parsers import parse_config
 
 log = logging.getLogger(__name__)
 
@@ -47,14 +49,14 @@ class Instrument:
 
     The values in *device_classes* should be one of the following:
 
+    1. A device class
+    2. A callable that returns an instantiated device object
+    3. A callable that returns a sequence of device objects
+
     *ignored_classes* can be used to avoid sections in the
     configuration file that are needed for other things. If provided,
     sections whose ``"device_class"`` is included in *ignored_classes*
     will be skipped.
-
-    1. A device class
-    2. A callable that returns an instantiated device object
-    3. A callable that returns a sequence of device objects
 
     Parameters
     ==========
@@ -66,16 +68,20 @@ class Instrument:
       `Instrument.devices`.
     ignored_classes
       Class names to ignore if they are present in the config file.
+    parsers
+      A set of parsers to use for converting configuration language
+      into device defitions. See ``parsers.parse_config_file`` for
+      details.
 
     """
 
     devices: Registry
-
     def __init__(
         self,
         device_classes: Mapping[str, type[Device]],
         registry: Registry | None = None,
         ignored_classes: Sequence[str] | None = None,
+        parsers: Mapping[str, Callable] = {},
     ):
         self.unconnected_devices: list[Device] = []
         if registry is None:
@@ -85,81 +91,20 @@ class Instrument:
         if ignored_classes is None:
             ignored_classes = []
         self.ignored_classes = ignored_classes
+        self._parsers = parsers
 
-    def parse_config(self, config_file: IO, config_format: str) -> list[dict]:
-        """Parse an instrument configuration file.
-
-        This method can be overridden to implement custom
-        configuration file schema. It should return a sequence of
-        device definitions, similar to:
-
-        .. code-block:: python
-
-            [
-                {
-                   "device_class": "ophyd.motor.EpicsMotor",
-                   "kwargs": {
-                       "name": "my_device",
-                       "prefix": "255idcVME:m1",
-                    },
-                }
-            ]
-
-        *device_class* can be an entry in the
-        ``Instrument.device_classes``, or else an import path that
-        will be loaded dynamically.
-
-        Parameters
-        ==========
-        config_file
-          A file path to read.
-        config_format
-          The language in which the config file is written.
-
-        Returns
-        =======
-        device_defns
-          A list of dictionaries, describing the devices to create.
-
-        """
-        if config_format == "toml":
-            return self.parse_toml_file(config_file)
-        if config_format == "yaml":
-            return self.parse_yaml_file(config_file)
-        else:
-            raise ValueError(f"Unknown file extension: {config_file}")
-
-    def parse_yaml_file(self, config_file: IO[str]) -> list[dict]:
-        """Produce device definitions from a YAML file.
-
-        See ``parse_config()`` for details.
-
-        """
-        raise NotImplementedError
-
-    def parse_toml_file(self, config_file: IO[str]) -> list[dict]:
-        """Produce device definitions from a TOML file.
-
-        See ``parse_config()`` for details.
-
-        """
-        # Load the file from disk
-        cfg = tomlkit.load(config_file)
-        # Convert file contents to device definitions
-        device_defns = []
-        sections = {
-            key: val for key, val in cfg.items() if isinstance(val, tomlkit.items.AoT)
+    @property
+    def parsers(self) -> ChainMap[str, Callable]:
+        class_parsers = {
+            "toml": getattr(self, "parse_toml_file", None),
+            "yaml": getattr(self, "parse_yaml_file", None),
+            "json": getattr(self, "parse_json_file", None),
         }
-        tables = [(cls, table) for cls, aot in sections.items() for table in aot]
-        device_defns = [
-            {
-                "device_class": class_name,
-                "args": (),
-                "kwargs": table,
-            }
-            for class_name, table in tables
-        ]
-        return device_defns
+        class_parsers = {
+            language: parser for language, parser in class_parsers.items()
+            if parser is not None
+        }
+        return ChainMap(self._parsers, class_parsers)
 
     def make_devices(self, defns: Sequence[Mapping], fake: bool) -> list[Device]:
         """Create Device instances based on device definitions.
@@ -406,7 +351,7 @@ class Instrument:
         fake: bool = False,
         device_classes: Mapping | None = None,
         ignored_classes: Sequence[str] | None = None,
-        return_exceptions: bool = False,
+        parsers: dict[str, Callable] = {},
     ):
         """Load instrument specified in config file.
 
@@ -425,15 +370,22 @@ class Instrument:
           A temporary set of device classes to use for this call
           only. Overrides any device classes given during
           initalization.
+        ignored_classes
+          Temporary override of the object attribute with the same
+          name.
+        parsers
+          A temporary set of parsers to use. See
+          ``parsers.parse_config_file`` for details. Overrides of the
+          object attribute with the same name.
 
         """
         # Load the instrument from config files
         old_classes = self.device_classes
         old_ignored = self.ignored_classes
-        # Decide which format to use
         # Parse device configuration files
+        parsers = ChainMap(parsers, self.parsers)
         with self.open_config_file(config_file, config_format) as (fd, fmt):
-            device_defns = self.parse_config(fd, config_format=fmt)
+            device_defns = parse_config(fd, config_format=fmt, parsers=parsers)
         # Temprary override of device classes
         if device_classes is not None:
             self.device_classes = device_classes
