@@ -130,12 +130,34 @@ class Instrument:
             raise ValueError(f"Unknown file extension: {config_file}")
 
     def parse_yaml_file(self, config_file: IO[str]) -> list[dict]:
-        """Produce device definitions from a YAML file.
+        """Read device configurations from YAML format file."""
+        if isinstance(config_file, str):
+            config_file = pathlib.Path(config_file)
 
-        See ``parse_config()`` for details.
+        def parser(creator, specs):
+            if creator not in self.device_classes:
+                self.device_classes[creator] = dynamic_import(creator)
+            entries = [
+                {
+                    "device_class": creator,
+                    "args": (),  # ALL specs are kwargs!
+                    "kwargs": table,
+                }
+                for table in specs
+            ]
+            return entries
 
-        """
-        raise NotImplementedError
+        with open(config_file, "r") as f:
+            config_data = load_config_yaml(f)
+
+            devices = [
+                device
+                # parse the file using already loaded config data
+                for k, v in config_data.items()
+                # each support type (class, factory, function, ...)
+                for device in parser(k, v)
+            ]
+        return devices
 
     def parse_toml_file(self, config_file: IO[str]) -> list[dict]:
         """Produce device definitions from a TOML file.
