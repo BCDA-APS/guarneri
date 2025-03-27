@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import IO, Any, Callable, TypeAlias, TypeVar, cast
 
 import tomlkit
+import yaml
 from ophyd import Device as ThreadedDevice
 from ophyd.sim import make_fake_device
 from ophyd_async.core import DEFAULT_TIMEOUT
@@ -131,33 +132,51 @@ class Instrument:
 
     def parse_yaml_file(self, config_file: IO[str]) -> list[dict]:
         """Read device configurations from YAML format file."""
-        if isinstance(config_file, str):
-            config_file = pathlib.Path(config_file)
 
-        def parser(creator, specs):
-            if creator not in self.device_classes:
-                self.device_classes[creator] = dynamic_import(creator)
-            entries = [
-                {
-                    "device_class": creator,
-                    "args": (),  # ALL specs are kwargs!
-                    "kwargs": table,
-                }
-                for table in specs
-            ]
-            return entries
 
-        with open(config_file, "r") as f:
-            config_data = load_config_yaml(f)
+       # Load the file from disk
+        cfg = yaml.load(config_file)
+        # Convert file contents to device definitions
+        device_defns = []
+        sections = {
+            key: val for key, val in cfg.items() if isinstance(val, tomlkit.items.AoT)
+        }
+        tables = [(cls, table) for cls, aot in sections.items() for table in aot]
+        device_defns = [
+            {
+                "device_class": class_name,
+                "args": (),
+                "kwargs": table,
+            }
+            for class_name, table in tables
+        ]
+        return device_defns
 
-            devices = [
-                device
-                # parse the file using already loaded config data
-                for k, v in config_data.items()
-                # each support type (class, factory, function, ...)
-                for device in parser(k, v)
-            ]
-        return devices
+        ## BITS code for reference 
+        # def parser(creator, specs):
+        #     if creator not in self.device_classes:
+        #         self.device_classes[creator] = dynamic_import(creator)
+        #     entries = [
+        #         {
+        #             "device_class": creator,
+        #             "args": (),  # ALL specs are kwargs!
+        #             "kwargs": table,
+        #         }
+        #         for table in specs
+        #     ]
+        #     return entries
+
+        # with open(config_file, "r") as f:
+        #     config_data = load_config_yaml(f)
+
+        #     devices = [
+        #         device
+        #         # parse the file using already loaded config data
+        #         for k, v in config_data.items()
+        #         # each support type (class, factory, function, ...)
+        #         for device in parser(k, v)
+        #     ]
+        # return devices
 
     def parse_toml_file(self, config_file: IO[str]) -> list[dict]:
         """Produce device definitions from a TOML file.
