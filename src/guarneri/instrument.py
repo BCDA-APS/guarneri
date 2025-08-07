@@ -6,6 +6,7 @@ import logging
 import time
 from pathlib import Path
 from typing import Mapping, Sequence
+import yaml
 
 import tomlkit
 from ophyd import Device as ThreadedDevice
@@ -14,6 +15,7 @@ from ophyd_async.core import DEFAULT_TIMEOUT, NotConnected
 from ophydregistry import Registry
 
 from .exceptions import InvalidConfiguration
+from .helpers import dynamic_import
 
 log = logging.getLogger(__name__)
 
@@ -101,12 +103,73 @@ class Instrument:
             raise ValueError(f"Unknown file extension: {config_file}")
 
     def parse_yaml_file(self, config_file: Path | str) -> list[dict]:
-        """Produce device definitions from a YAML file.
+        """Read device configurations from YAML format file.
+        Produce device definitions from a YAML file.
 
         See ``parse_config()`` for details.
-
         """
-        raise NotImplementedError
+        if isinstance(config_file, str):
+            config_file = Path(config_file)
+
+        def yaml_parser(creator, specs):
+            if creator not in self.device_classes:
+                try:
+                    self.device_classes[creator] = dynamic_import(creator)
+                except ImportError as e:
+                    log.error(
+                        "Failed to import device creator '%s': %s", creator, str(e)
+                    )
+                    raise
+                except AttributeError as e:
+                    log.error(
+                        "Device creator '%s' not found in module: %s", creator, str(e)
+                    )
+                    raise
+            entries = [
+                {
+                    "device_class": creator,
+                    "args": (),  # ALL specs are kwargs!
+                    "kwargs": table,
+                }
+                for table in specs
+            ]
+            return entries
+
+        try:
+            with open(config_file, "r") as f:
+                config_data = yaml.safe_load(f)
+        except FileNotFoundError:
+            log.error("Device configuration file not found: %s", config_file)
+            raise
+        except PermissionError:
+            log.error("Permission denied reading device file: %s", config_file)
+            raise
+        except yaml.YAMLError as e:
+            log.error("YAML parsing error in device file %s: %s", config_file, str(e))
+            raise
+
+        if not isinstance(config_data, dict):
+            log.error(
+                "Invalid device file format in %s: expected dictionary, got %s",
+                config_file,
+                type(config_data).__name__,
+            )
+            raise ValueError(f"Invalid device file format in {config_file}")
+
+        try:
+            devices = [
+                device
+                # parse the file using already loaded config data
+                for k, v in config_data.items()
+                # each support type (class, factory, function, ...)
+                for device in yaml_parser(k, v)
+            ]
+        except Exception as e:
+            log.error(
+                "Error parsing device specifications in %s: %s", config_file, str(e)
+            )
+            raise
+        return devices
 
     def parse_toml_file(self, config_file: Path | str) -> list[dict]:
         """Produce device definitions from a TOML file.
