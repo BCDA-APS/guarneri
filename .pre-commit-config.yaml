@@ -17,11 +17,11 @@ repos:
         exclude: '^(conda-recipe/meta.yaml)$'
     -   id: debug-statements
 
--   repo: https://github.com/pycqa/flake8.git
-    rev: 7.3.0
+-   repo: https://github.com/pycqa/flake8
+    rev: 7.1.1
     hooks:
     -   id: flake8
-        args: [--select=E9,F63,F7,F82 --show-source --statistics]
+        args: ["--select=E9,F63,F7,F82"]
 
 -   repo: https://github.com/timothycrosley/isort
     rev: 6.0.1
