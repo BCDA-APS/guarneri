@@ -6,9 +6,9 @@ import logging
 import time
 from pathlib import Path
 from typing import Mapping, Sequence
-import yaml
 
 import tomlkit
+import yaml
 from ophyd import Device as ThreadedDevice
 from ophyd.sim import make_fake_device
 from ophyd_async.core import DEFAULT_TIMEOUT, NotConnected

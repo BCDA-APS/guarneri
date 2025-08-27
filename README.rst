@@ -33,13 +33,13 @@ specific to guarneri, just regular Ophyd.
     from ophyd_async.epics import epics_signal_rw
     from ophyd_async.core import AsyncDevice
     from ophyd import Device, Component
-    
+
     from guarneri import Instrument
-    
+
     class MyDevice(Device):
         description = Component(".DESC")
-    
-    
+
+
     class MyAsyncDevice(AsyncDevice):
         def __init__(self, prefix: str, name: str = ""):
             self.description = epics_signal_rw(str, f"{prefix}.DESC")
@@ -64,7 +64,7 @@ arguments of a factory that returns a device.
     [[ my_device ]]
     name = "device1"
     prefix = '255id:'
-    
+
     [[ async_device ]]
     name = "device3"
     prefix = '255id:'
@@ -80,23 +80,23 @@ load the config files.
 .. code-block:: python
 
     from io import StringIO
-    
+
     from guarneri import Instrument
-    
+
     from devices import MyDevice, MyAsyncDevice, area_detector_factory
-    
+
     # Prepare the instrument device
     instrument = Instrument({
         "my_device": MyDevice,
 	"async_device": MyAsyncDevice,
 	"area_detector": area_detector_factory,
     })
-    
+
     # Create the devices from the TOML configuration file
     instrument.load_config_files("instrument.toml")
     # Optionally connect all the devices
     await instrument.connect()
-    
+
     # Now use the devices for science!
     instrument.devices['device_1'].description.get()
 

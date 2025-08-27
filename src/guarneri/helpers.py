@@ -1,3 +1,7 @@
+"""Helper functions for Guarneri."""
+from importlib import import_module
+
+
 def dynamic_import(full_path: str) -> type:
     """
     Import the object given its import path as text.
@@ -13,9 +17,6 @@ def dynamic_import(full_path: str) -> type:
         IocStats = dynamic_import("instrument.devices.ioc_stats.IocInfoDevice")
         gp_stats = IocStats("gp:", name="gp_stats")
     """
-    from importlib import import_module
-
-    import_object = None
 
     if "." not in full_path:
         # fmt: off
