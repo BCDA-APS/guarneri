@@ -1,6 +1,5 @@
 """Test parts of the helpers.py file."""
 
-import ophyd
 import pytest
 
 from ..helpers import dynamic_import
@@ -9,8 +8,7 @@ from ..helpers import dynamic_import
 @pytest.mark.parametrize(
     "specified, expected, error",
     [
-        ["ophyd.EpicsMotor", ophyd.EpicsMotor, None],
-        ["apstools.utils.dynamic_import", dynamic_import, None],
+        ["guarneri.helpers.dynamic_import", dynamic_import, None],
     ],
 )
 def test_dynamic_import(specified, expected, error):
