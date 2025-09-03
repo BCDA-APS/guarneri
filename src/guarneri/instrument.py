@@ -5,7 +5,7 @@ import inspect
 import logging
 import time
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import IO, Mapping, Sequence
 
 import tomlkit
 import yaml
@@ -102,7 +102,7 @@ class Instrument:
         else:
             raise ValueError(f"Unknown file extension: {config_file}")
 
-    def parse_yaml_file(self, config_file: Path | str) -> list[dict]:
+    def parse_yaml_file(self, config_file: IO[str]) -> list[dict]:
         """Read device configurations from YAML format file.
         Produce device definitions from a YAML file.
 
