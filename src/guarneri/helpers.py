@@ -1,9 +1,10 @@
 """Helper functions for Guarneri."""
 
+import collections.abc
 from importlib import import_module
 
 
-def dynamic_import(full_path: str) -> type:
+def dynamic_import(full_path: str) -> collections.abc.Callable:
     """
     Import the object given its import path as text.
 
