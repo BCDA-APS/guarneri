@@ -115,7 +115,7 @@ def test_make_unknown_class(instrument):
     instrument.device_classes = {}
     defns = [
         {
-            "device_class": "tardis",
+            "device_class": "module.tardis",
             "kwargs": {
                 "name": "the tardis",
             },
