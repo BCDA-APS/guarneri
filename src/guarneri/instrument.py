@@ -235,10 +235,7 @@ class Instrument:
             except KeyError:
                 # Try dynamic import before giving up
                 try:
-                    imported_callable: Callable[..., Any] = dynamic_import(
-                        defn["device_class"]
-                    )
-                    Klass = imported_callable
+                    Klass = dynamic_import(defn["device_class"])
                 except (ImportError, AttributeError):
                     warnings.warn(f"Unknown device class: {defn['device_class']}")
                     continue
@@ -257,7 +254,7 @@ class Instrument:
                 devices.append(device)
         return devices
 
-    def validate_params(self, params: dict[str, Any], Klass: type[Device]):
+    def validate_params(self, params: dict[str, Any], Klass: Callable[..., Any]):
         """Check that parameters match a Device class's initializer."""
         sig = inspect.signature(Klass)
         any([param.kind == param.VAR_KEYWORD for param in sig.parameters.values()])
