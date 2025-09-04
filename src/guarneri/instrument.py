@@ -167,14 +167,6 @@ class Instrument:
         except yaml.YAMLError as e:
             log.error("YAML parsing error: %s", str(e))
             raise
-        try:
-            config_data = yaml.safe_load(config_file)
-        except yaml.YAMLError as e:
-            log.error("YAML parsing error: %s", str(e))
-            raise
-        except yaml.YAMLError as e:
-            log.error("YAML parsing error in device file %s: %s", config_file, str(e))
-            raise
 
         if not isinstance(config_data, dict):
             log.error(
