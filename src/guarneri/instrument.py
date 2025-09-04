@@ -137,8 +137,6 @@ class Instrument:
 
         See ``parse_config()`` for details.
         """
-        if isinstance(config_file, str):
-            config_file = Path(config_file)
 
         def yaml_parser(creator, specs):
             if creator not in self.device_classes:
@@ -164,9 +162,14 @@ class Instrument:
             ]
             return entries
 
+        # try:
+        #     with open(config_file, "r") as f:
+        #         config_data = yaml.safe_load(f)
         try:
-            with open(config_file, "r") as f:
-                config_data = yaml.safe_load(f)
+            config_data = yaml.safe_load(config_file)
+        except yaml.YAMLError as e:
+            log.error("YAML parsing error: %s", str(e))
+            raise
         except FileNotFoundError:
             log.error("Device configuration file not found: %s", config_file)
             raise
