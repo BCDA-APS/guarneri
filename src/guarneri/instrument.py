@@ -139,19 +139,6 @@ class Instrument:
         """
 
         def yaml_parser(creator, specs):
-            if creator not in self.device_classes:
-                try:
-                    self.device_classes[creator] = dynamic_import(creator)
-                except ImportError as e:
-                    log.error(
-                        "Failed to import device creator '%s': %s", creator, str(e)
-                    )
-                    raise
-                except AttributeError as e:
-                    log.error(
-                        "Device creator '%s' not found in module: %s", creator, str(e)
-                    )
-                    raise
             entries = [
                 {
                     "device_class": creator,
@@ -221,13 +208,13 @@ class Instrument:
         Parameters
         ==========
         defns
-          The device defitions need to create devices. Each one should
-          at least have the keys "device_class", and "kwargs".
+        The device defitions need to create devices. Each one should
+        at least have the keys "device_class", and "kwargs".
 
         Returns
         =======
         devices
-          The Ophyd and ophyd-async devices created from *defintions*.
+        The Ophyd and ophyd-async devices created from *defintions*.
 
         """
         # Validate all the defitions
@@ -245,9 +232,13 @@ class Instrument:
             # Check if we know how to make the device
             try:
                 Klass = self.device_classes[defn["device_class"]]
-            except KeyError as exc:
-                warnings.warn(f"Unknown device class: {exc}")
-                continue
+            except KeyError:
+                # Try dynamic import before giving up
+                try:
+                    Klass = dynamic_import(defn["device_class"])
+                except (ImportError, AttributeError):
+                    warnings.warn(f"Unknown device class: {defn['device_class']}")
+                    continue
             # Create the device
             device = self.make_device(
                 Klass,
