@@ -22,7 +22,8 @@ keywords = []
 dependencies = ["ophyd", "ophyd-async", "ophyd-registry>=2.0.0", "tomlkit", "pyyaml"]
 
 [project.optional-dependencies]
-dev = ["black", "pytest", "pytest-asyncio", "pytest-mypy", "flake8", "isort", "pydata-sphinx-theme", "build", "twine"]
+dev = ["black", "pytest", "pytest-asyncio", "pytest-mypy", "flake8", "isort", "pydata-sphinx-theme", "build", "twine", "types-PyYAML"]
+
 
 [project.urls]
 Homepage = "https://github.com/spc-group/guarneri"
