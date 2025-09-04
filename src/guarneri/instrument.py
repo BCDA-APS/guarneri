@@ -162,19 +162,15 @@ class Instrument:
             ]
             return entries
 
-        # try:
-        #     with open(config_file, "r") as f:
-        #         config_data = yaml.safe_load(f)
         try:
             config_data = yaml.safe_load(config_file)
         except yaml.YAMLError as e:
             log.error("YAML parsing error: %s", str(e))
             raise
-        except FileNotFoundError:
-            log.error("Device configuration file not found: %s", config_file)
-            raise
-        except PermissionError:
-            log.error("Permission denied reading device file: %s", config_file)
+        try:
+            config_data = yaml.safe_load(config_file)
+        except yaml.YAMLError as e:
+            log.error("YAML parsing error: %s", str(e))
             raise
         except yaml.YAMLError as e:
             log.error("YAML parsing error in device file %s: %s", config_file, str(e))
