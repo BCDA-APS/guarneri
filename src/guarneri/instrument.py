@@ -235,7 +235,7 @@ class Instrument:
             except KeyError:
                 # Try dynamic import before giving up
                 try:
-                    Klass: Callable[..., Any] = dynamic_import(defn["device_class"])
+                    Klass = dynamic_import(defn["device_class"])
                 except (ImportError, AttributeError):
                     warnings.warn(f"Unknown device class: {defn['device_class']}")
                     continue
