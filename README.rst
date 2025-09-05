@@ -134,11 +134,6 @@ Documentation
 Sphinx-generated documentation for this project can be found here:
 https://spc-group.github.io/guarneri/
 
-Requirements
-------------
-
-Describe the project requirements (i.e. Python version, packages and how to install them)
-
 Installation
 ------------
 
@@ -148,18 +143,35 @@ The following will download the package and load it into the python environment.
 
     pip install guarneri
 
-For development of guarneri, install as an editable project with all
-development dependencies using:
+Development
+-----------
 
 .. code-block:: bash
 
     git clone https://github.com/spc-group/guarneri
+
+*uv* is preferred for managing guarneri. Run the tests (including
+ dependencies) with
+
+.. code-block:: bash
+
+    uv run --dev pytest
+
+Build *wheels* with
+
+.. code-block:: bash
+
+    uv build
+
+Development (uv-free)
+---------------------
+
+First, install the dependencies listed in ``dependency-groups.dev`` in
+pyproject.toml.
+
+Then install an editable guarneri and run the tests with
+
+.. code-block:: bash
+
     pip install -e ".[dev]"
-
-
-Running the Tests
------------------
-::
-
-  $ pip install -e .
-  $ pytest -vv
+    pytest

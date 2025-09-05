@@ -21,8 +21,8 @@ classifiers = [
 keywords = []
 dependencies = ["ophyd", "ophyd-async", "ophyd-registry>=2.0.0", "tomlkit", "pyyaml"]
 
-[project.optional-dependencies]
-dev = ["black", "pytest", "pytest-asyncio", "pytest-mypy", "flake8", "isort", "pydata-sphinx-theme", "build", "twine", "types-PyYAML"]
+[dependency-groups]
+dev = ["black", "pytest", "pytest-asyncio", "pytest-mypy", "isort", "pydata-sphinx-theme", "build", "twine", "ruff", "types-PyYAML"]
 
 [project.urls]
 Homepage = "https://github.com/spc-group/guarneri"
@@ -30,9 +30,9 @@ Homepage = "https://github.com/spc-group/guarneri"
 [project.scripts]
 # command = "guarneri.__main__:main"
 
+[ tool.mypy ]
+files = ["src/"]
+
 [[tool.mypy.overrides]]
 module = ["ophyd.*"]
 ignore_missing_imports = true
-
-[ tool.isort ]
-profile = "black"
