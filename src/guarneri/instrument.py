@@ -8,19 +8,16 @@ import warnings
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path
-from typing import IO, Any, Callable, TypeAlias, TypeVar, cast
+from typing import IO, Any, TypeVar, cast
 
 import tomlkit
 import yaml
-from ophyd import Device as ThreadedDevice
 from ophyd.sim import make_fake_device
-from ophyd_async.core import DEFAULT_TIMEOUT
-from ophyd_async.core import Device as AsyncDevice
-from ophyd_async.core import NotConnected
+from ophyd_async.core import DEFAULT_TIMEOUT, NotConnected
 from ophydregistry import Registry
 
 from .exceptions import InvalidConfiguration
-from .helpers import dynamic_import
+from .helpers import AsyncDevice, Device, Loader, ThreadedDevice, dynamic_import
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +26,6 @@ instrument = None
 
 
 K = TypeVar("K")
-Device: TypeAlias = AsyncDevice | ThreadedDevice
 
 
 class Instrument:
@@ -75,7 +71,7 @@ class Instrument:
 
     def __init__(
         self,
-        device_classes: Mapping[str, type[Device]],
+        device_classes: Mapping[str, Loader],
         registry: Registry | None = None,
         ignored_classes: Sequence[str] | None = None,
     ):
@@ -254,7 +250,7 @@ class Instrument:
                 devices.append(device)
         return devices
 
-    def validate_params(self, params: dict[str, Any], Klass: Callable[..., Any]):
+    def validate_params(self, params: dict[str, Any], Klass: Loader):
         """Check that parameters match a Device class's initializer."""
         sig = inspect.signature(Klass)
         any([param.kind == param.VAR_KEYWORD for param in sig.parameters.values()])
@@ -287,7 +283,7 @@ class Instrument:
 
     def make_device(
         self,
-        Klass: Callable | type,
+        Klass: Loader,
         args: Sequence[Any],
         kwargs: Mapping[str, Any],
         fake: bool,

@@ -30,7 +30,9 @@ Homepage = "https://github.com/spc-group/guarneri"
 [project.scripts]
 # command = "guarneri.__main__:main"
 
-
 [[tool.mypy.overrides]]
 module = ["ophyd.*"]
 ignore_missing_imports = true
+
+[ tool.isort ]
+profile = "black"
