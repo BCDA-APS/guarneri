@@ -17,8 +17,7 @@ from ophyd_async.core import DEFAULT_TIMEOUT, NotConnected
 from ophydregistry import Registry
 
 from .exceptions import InvalidConfiguration
-from .helpers import (AsyncDevice, Device, Loader, ThreadedDevice,
-                      dynamic_import)
+from .helpers import AsyncDevice, Device, Loader, ThreadedDevice, dynamic_import
 
 log = logging.getLogger(__name__)
 
