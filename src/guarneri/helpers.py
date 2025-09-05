@@ -1,10 +1,17 @@
 """Helper functions for Guarneri."""
 
-import collections.abc
+from collections.abc import Callable, Sequence
 from importlib import import_module
+from typing import TypeAlias
+
+from ophyd import Device as ThreadedDevice
+from ophyd_async.core import Device as AsyncDevice
+
+Device: TypeAlias = AsyncDevice | ThreadedDevice
+Loader: TypeAlias = Callable[..., Device | Sequence[Device]] | type[Device]
 
 
-def dynamic_import(full_path: str) -> collections.abc.Callable:
+def dynamic_import(full_path: str) -> Loader:
     """
     Import the object given its import path as text.
 
