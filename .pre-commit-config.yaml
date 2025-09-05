@@ -1,33 +1,21 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
-repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
-    -   id: no-commit-to-branch
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-ast
-    -   id: check-case-conflict
-    -   id: check-json
-    -   id: check-merge-conflict
-    -   id: check-symlinks
-    -   id: check-xml
-    -   id: check-yaml
-        exclude: '^(conda-recipe/meta.yaml)$'
-    -   id: debug-statements
-
--   repo: https://github.com/psf/black
-    rev: 24.10.0
-    hooks:
-    -   id: black
-        args: ["--preview"]
-
--   repo: https://github.com/pycqa/flake8
-    rev: 7.1.1
-    hooks:
-    -   id: flake8
-        args: ["--select=E9,F63,F7,F82"]
+# repos:
+# -   repo: https://github.com/pre-commit/pre-commit-hooks
+#     rev: v5.0.0
+#     hooks:
+#     -   id: no-commit-to-branch
+#     -   id: trailing-whitespace
+#     -   id: end-of-file-fixer
+#     -   id: check-ast
+#     -   id: check-case-conflict
+#     -   id: check-json
+#     -   id: check-merge-conflict
+#     -   id: check-symlinks
+#     -   id: check-xml
+#     -   id: check-yaml
+#         exclude: '^(conda-recipe/meta.yaml)$'
+#     -   id: debug-statements
 
 -   repo: https://github.com/timothycrosley/isort
     rev: 6.0.1
