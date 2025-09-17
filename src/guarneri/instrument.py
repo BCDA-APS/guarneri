@@ -204,13 +204,13 @@ class Instrument:
         Parameters
         ==========
         defns
-        The device defitions need to create devices. Each one should
-        at least have the keys "device_class", and "kwargs".
+            The device defitions need to create devices. Each one should
+            at least have the keys "device_class", and "kwargs".
 
         Returns
         =======
         devices
-        The Ophyd and ophyd-async devices created from *defintions*.
+            The Ophyd and ophyd-async devices created from *defintions*.
 
         """
         # Validate all the defitions
