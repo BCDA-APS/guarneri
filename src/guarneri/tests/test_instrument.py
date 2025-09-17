@@ -103,6 +103,7 @@ def config_io_toml():
     with open(toml_file, mode="rt") as fd:
         yield fd
 
+
 @pytest.fixture()
 def config_io_yaml():
     with open(yaml_file, mode="rt") as fd:
@@ -115,11 +116,11 @@ def test_parse_toml_config(config_io_toml, instrument):
     dfn = cfg[0]
     assert dfn["device_class"] == "async_device"
 
+
 def test_parse_yaml_config(config_io_yaml, instrument):
     cfg = instrument.parse_config(config_io_yaml, config_format="yaml")
     assert len(cfg) > 0
     dfn = cfg[0]
-    print(dfn)
     assert dfn["device_class"] == "ophyd.Signal"
 
 
