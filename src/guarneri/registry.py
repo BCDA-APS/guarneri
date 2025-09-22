@@ -15,7 +15,7 @@ from weakref import WeakSet
 
 from ophyd import ophydobj
 
-from ophydregistry._typing import Device, DeviceQuery, DevicesQuery
+from guarneri._typing import Device, DeviceQuery, DevicesQuery
 
 from .exceptions import (
     ComponentNotFound,
