@@ -23,7 +23,7 @@ some hints about what devices to create.
 
    from guarneri import Instrument
    from ophyd_async.epics.motor import Motor
-   
+
    instrument = Instrument({"motor": Motor})
 
 
@@ -39,7 +39,7 @@ instrument device.
    [[ motor ]]
    name = "m1"
    prefix = "255idcVME:m1"
-   
+
    [[ motor ]]
    name = "m2"
    prefix = "255idcVME:m2"
@@ -59,4 +59,3 @@ yet connected**. These can be accessed using the Instrument's
 .. code-block:: python
 
    assert isinstance(instrument.devices['m1'], Motor)
-

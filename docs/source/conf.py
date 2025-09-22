@@ -9,47 +9,47 @@ sys.path.insert(0, str(module_path))
 import guarneri  # noqa # isort: skip
 
 # -- Project information -----------------------------------------------------
-project = 'guarneri'
-author = 'Mark Wolfman'
-copyright = f'{datetime.now().year}, {author}'
+project = "guarneri"
+author = "Mark Wolfman"
+copyright = f"{datetime.now().year}, {author}"
 
 # The short X.Y version
-version = ''
+version = ""
 # The full version, including alpha/beta/rc tags
-release = ''
+release = ""
 
 # -- General configuration ---------------------------------------------------
 
-needs_sphinx = '3.2.1'
+needs_sphinx = "3.2.1"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.githubpages",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = []
 
 # The suffix(es) of source filenames.
-source_suffix = '.rst'
-master_doc = 'index'
+source_suffix = ".rst"
+master_doc = "index"
 language = "en"
 exclude_patterns = []
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'pydata_sphinx_theme'
+html_theme = "pydata_sphinx_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -60,7 +60,7 @@ html_theme = 'pydata_sphinx_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -80,12 +80,11 @@ todo_include_todos = True
 
 # -- Extension configuration -------------------------------------------------
 
-autodoc_default_options = {
-}
+autodoc_default_options = {}
 
 intersphinx_mapping = {
     # 'ophyd': ('https://blueskyproject.io/ophyd', None),
-    'python': ('https://docs.python.org/3', None),
+    "python": ("https://docs.python.org/3", None),
     # 'numpy': ('https://docs.scipy.org/doc/numpy', None),
 }
 
@@ -93,7 +92,7 @@ intersphinx_mapping = {
 autosummary_generate = True
 
 # Duplicate attributes will be generated without this:
-autoclass_content = 'init'
+autoclass_content = "init"
 
 # Tons of warnings will be emitted without this:
 # numpydoc_show_class_members = False
@@ -106,7 +105,7 @@ autosummary_context = {
 
 html_context = {
     **autosummary_context,
-    'css_files': [
-        '_static/theme_overrides.css',  # override wide tables in RTD theme
+    "css_files": [
+        "_static/theme_overrides.css",  # override wide tables in RTD theme
     ],
 }

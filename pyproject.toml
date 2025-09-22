@@ -19,10 +19,10 @@ classifiers = [
     "Topic :: System :: Hardware",
 ]
 keywords = []
-dependencies = ["ophyd", "ophyd-async", "ophyd-registry>=2.0.0", "tomlkit"]
+dependencies = ["ophyd", "ophyd-async", "ophyd-registry>=2.0.0", "tomlkit", "pyyaml"]
 
 [dependency-groups]
-dev = ["black", "pytest", "pytest-asyncio", "pytest-mypy", "isort", "pydata-sphinx-theme", "build", "twine", "ruff"]
+dev = ["black", "pytest", "pytest-asyncio", "pytest-mypy", "isort", "pydata-sphinx-theme", "build", "twine", "ruff", "types-PyYAML"]
 
 [project.urls]
 Homepage = "https://github.com/spc-group/guarneri"

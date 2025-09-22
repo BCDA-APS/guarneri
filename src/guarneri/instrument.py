@@ -8,17 +8,16 @@ import warnings
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path
-from typing import IO, Any, Callable, TypeAlias, TypeVar, cast
+from typing import IO, Any, TypeVar, cast
 
 import tomlkit
-from ophyd import Device as ThreadedDevice
+import yaml
 from ophyd.sim import make_fake_device
-from ophyd_async.core import DEFAULT_TIMEOUT
-from ophyd_async.core import Device as AsyncDevice
-from ophyd_async.core import NotConnected
+from ophyd_async.core import DEFAULT_TIMEOUT, NotConnected
 from ophydregistry import Registry
 
 from .exceptions import InvalidConfiguration
+from .helpers import AsyncDevice, Device, Loader, ThreadedDevice, dynamic_import
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +26,6 @@ instrument = None
 
 
 K = TypeVar("K")
-Device: TypeAlias = AsyncDevice | ThreadedDevice
 
 
 class Instrument:
@@ -73,7 +71,7 @@ class Instrument:
 
     def __init__(
         self,
-        device_classes: Mapping[str, type[Device]],
+        device_classes: Mapping[str, Loader],
         registry: Registry | None = None,
         ignored_classes: Sequence[str] | None = None,
     ):
@@ -130,12 +128,51 @@ class Instrument:
             raise ValueError(f"Unknown file extension: {config_file}")
 
     def parse_yaml_file(self, config_file: IO[str]) -> list[dict]:
-        """Produce device definitions from a YAML file.
+        """Read device configurations from YAML format file.
+        Produce device definitions from a YAML file.
 
         See ``parse_config()`` for details.
-
         """
-        raise NotImplementedError
+
+        def yaml_parser(creator, specs):
+            entries = [
+                {
+                    "device_class": creator,
+                    "args": (),  # ALL specs are kwargs!
+                    "kwargs": table,
+                }
+                for table in specs
+            ]
+            return entries
+
+        try:
+            config_data = yaml.safe_load(config_file)
+        except yaml.YAMLError as e:
+            log.error("YAML parsing error: %s", str(e))
+            raise
+
+        if not isinstance(config_data, dict):
+            log.error(
+                "Invalid device file format in %s: expected dictionary, got %s",
+                config_file,
+                type(config_data).__name__,
+            )
+            raise ValueError(f"Invalid device file format in {config_file}")
+
+        try:
+            devices = [
+                device
+                # parse the file using already loaded config data
+                for k, v in config_data.items()
+                # each support type (class, factory, function, ...)
+                for device in yaml_parser(k, v)
+            ]
+        except Exception as e:
+            log.error(
+                "Error parsing device specifications in %s: %s", config_file, str(e)
+            )
+            raise
+        return devices
 
     def parse_toml_file(self, config_file: IO[str]) -> list[dict]:
         """Produce device definitions from a TOML file.
@@ -167,13 +204,13 @@ class Instrument:
         Parameters
         ==========
         defns
-          The device defitions need to create devices. Each one should
-          at least have the keys "device_class", and "kwargs".
+            The device defitions need to create devices. Each one should
+            at least have the keys "device_class", and "kwargs".
 
         Returns
         =======
         devices
-          The Ophyd and ophyd-async devices created from *defintions*.
+            The Ophyd and ophyd-async devices created from *defintions*.
 
         """
         # Validate all the defitions
@@ -191,9 +228,13 @@ class Instrument:
             # Check if we know how to make the device
             try:
                 Klass = self.device_classes[defn["device_class"]]
-            except KeyError as exc:
-                warnings.warn(f"Unknown device class: {exc}")
-                continue
+            except KeyError:
+                # Try dynamic import before giving up
+                try:
+                    Klass = dynamic_import(defn["device_class"])
+                except (ImportError, AttributeError):
+                    warnings.warn(f"Unknown device class: {defn['device_class']}")
+                    continue
             # Create the device
             device = self.make_device(
                 Klass,
@@ -209,7 +250,7 @@ class Instrument:
                 devices.append(device)
         return devices
 
-    def validate_params(self, params: dict[str, Any], Klass: type[Device]):
+    def validate_params(self, params: dict[str, Any], Klass: Loader):
         """Check that parameters match a Device class's initializer."""
         sig = inspect.signature(Klass)
         any([param.kind == param.VAR_KEYWORD for param in sig.parameters.values()])
@@ -242,7 +283,7 @@ class Instrument:
 
     def make_device(
         self,
-        Klass: Callable | type,
+        Klass: Loader,
         args: Sequence[Any],
         kwargs: Mapping[str, Any],
         fake: bool,

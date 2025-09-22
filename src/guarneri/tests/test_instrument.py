@@ -10,6 +10,7 @@ from ophyd_async.core import Device
 from guarneri import Instrument, exceptions
 
 toml_file = Path(__file__).parent.parent.resolve() / "iconfig_example.toml"
+yaml_file = Path(__file__).parent.parent.resolve() / "iconfig_example.yaml"
 
 
 class ThreadedDevice(DeviceV1):
@@ -98,16 +99,29 @@ def test_validate_wrong_types(instrument):
 
 
 @pytest.fixture()
-def config_io():
+def config_io_toml():
     with open(toml_file, mode="rt") as fd:
         yield fd
 
 
-def test_parse_config(config_io, instrument):
-    cfg = instrument.parse_config(config_io, config_format="toml")
+@pytest.fixture()
+def config_io_yaml():
+    with open(yaml_file, mode="rt") as fd:
+        yield fd
+
+
+def test_parse_toml_config(config_io_toml, instrument):
+    cfg = instrument.parse_config(config_io_toml, config_format="toml")
     assert len(cfg) > 0
     dfn = cfg[0]
     assert dfn["device_class"] == "async_device"
+
+
+def test_parse_yaml_config(config_io_yaml, instrument):
+    cfg = instrument.parse_config(config_io_yaml, config_format="yaml")
+    assert len(cfg) > 0
+    dfn = cfg[0]
+    assert dfn["device_class"] == "ophyd.Signal"
 
 
 def test_make_unknown_class(instrument):
@@ -115,7 +129,7 @@ def test_make_unknown_class(instrument):
     instrument.device_classes = {}
     defns = [
         {
-            "device_class": "tardis",
+            "device_class": "module.tardis",
             "kwargs": {
                 "name": "the tardis",
             },

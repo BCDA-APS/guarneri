@@ -1,0 +1,4 @@
+ophyd.Signal:
+- name: test
+  value: 50.7
+
