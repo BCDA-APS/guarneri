@@ -22,7 +22,20 @@ keywords = []
 dependencies = ["ophyd", "ophyd-async", "tomlkit", "pyyaml"]
 
 [dependency-groups]
-dev = ["black", "pytest", "pytest-asyncio", "pytest-mypy", "isort", "pydata-sphinx-theme", "build", "twine", "ruff", "types-PyYAML"]
+dev = [
+    "black",
+ "pytest",
+ "pytest-asyncio",
+ "pytest-mock",
+ "pyepics",
+ "pytest-mypy",
+ "isort",
+ "pydata-sphinx-theme",
+ "build",
+ "twine",
+ "ruff",
+ "types-PyYAML",
+]
 
 [project.urls]
 Homepage = "https://github.com/spc-group/guarneri"
