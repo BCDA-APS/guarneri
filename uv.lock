@@ -441,7 +441,6 @@ source = { editable = "." }
 dependencies = [
     { name = "ophyd" },
     { name = "ophyd-async" },
-    { name = "ophyd-registry" },
     { name = "pyyaml" },
     { name = "tomlkit" },
 ]
@@ -464,7 +463,6 @@ dev = [
 requires-dist = [
     { name = "ophyd" },
     { name = "ophyd-async" },
-    { name = "ophyd-registry", specifier = ">=2.0.0" },
     { name = "pyyaml" },
     { name = "tomlkit" },
 ]
@@ -1163,18 +1161,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/aa/9a/d7a5a810e85c0c4c632db20794baece23709693ea88492650e094fdb3ead/ophyd_async-0.12.3.tar.gz", hash = "sha256:4800fede1235ac14eb48462c98ca45ea544cf579a74b3c9012915cf91ea04e2f", size = 317183 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/cb/75a17d45ae070fa4af0b6bf79fb820b9d9137bf09f485a6728f71e4a062e/ophyd_async-0.12.3-py3-none-any.whl", hash = "sha256:3d0e98f9ab0169776dad24c072ef19ece6d53faa2933e55d3c139c525761b802", size = 180818 },
-]
-
-[[package]]
-name = "ophyd-registry"
-version = "2.0.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "ophyd" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b1/4b/1ef9bf8f1c746eee977369e950630b74c4ac098912e17097d256f5141dcd/ophyd_registry-2.0.0.tar.gz", hash = "sha256:554e0a58ae30dd8c631ed543f7155b45ec8f973f03c3d3cf0af9c416c8e63ec0", size = 13049 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/75/7f/f2dc377aff9e87071c311dae55702696fbeb960c82da9e473ce72cd52d7a/ophyd_registry-2.0.0-py3-none-any.whl", hash = "sha256:fcb718620833eefe87b96d7716aac69531c6286455e487873eb9ffdf088197a8", size = 14152 },
 ]
 
 [[package]]

@@ -14,7 +14,7 @@ import tomlkit
 import yaml
 from ophyd.sim import make_fake_device
 from ophyd_async.core import DEFAULT_TIMEOUT, NotConnected
-from .registry import Registry 
+from .registry import Registry
 
 from .exceptions import InvalidConfiguration
 from .helpers import AsyncDevice, Device, Loader, ThreadedDevice, dynamic_import
