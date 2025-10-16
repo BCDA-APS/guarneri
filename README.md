@@ -185,23 +185,6 @@ registry.register(ophyd.sim.motor)
 registry['motor'].set(15.3)
 ```
 
-## Installation
-
-The easiest way to install the ophyd registry is with pip from PyPI:
-
-```bash
-python -m pip install ophyd-registry
-```
-
-To create a **developer installation**:
-
-```bash
-git clone https://github.com/spc-group/ophyd-registry.git
-python -m pip install "ophyd_registry[dev]"
-```
-
-## Usage
-
 ### Registering Devices
 
 There are three ways to have an instrument registry know about a
