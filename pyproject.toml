@@ -47,5 +47,5 @@ Homepage = "https://github.com/spc-group/guarneri"
 files = ["src/"]
 
 [[tool.mypy.overrides]]
-module = ["ophyd.*"]
+module = ["ophyd.*", "typhos.*"]
 ignore_missing_imports = true
