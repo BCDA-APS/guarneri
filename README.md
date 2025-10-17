@@ -15,6 +15,7 @@ provides the following benefits:
 4) Missing devices are handled gracefully.
 5) Devices can be simulated/mocked by changing a single value in the config file.
 
+
 ## Usage
 
 Let's say **you have some ophyd and ophyd-async devices** defined
@@ -98,6 +99,17 @@ instance of `MyDevice()` with the name `"device1"` and prefix
 `"255id:"`. This is equivalent to `MyDevice(prefix="255id:",
 name="device1")`.
 
+Guarneri also provides a way to keep track of and retrieve, Ophyd objects. 
+That have been registered using guarneri. This allows for a simple way to 
+keep track of the Ophyd devices that were created in your project.
+
+```python
+registry = instrument.devices
+
+# Then elsewhere in your project, use them...
+registry['motor'].set(15.3)
+```
+
 ## What About Happi?
 
 Happi has a similar goal to Guarneri, but with a different
@@ -159,31 +171,6 @@ pytest
 ```
 
 # Ophyd Registry
-
-[![Python Tests](https://github.com/spc-group/ophyd-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/spc-group/ophyd-registry/actions/workflows/ci.yml)
-
-A registry to keep track of, and retrieve, Ophyd objects.
-
-The **Ophyd registry** provides a way to keep track of the devices
-(including components, motors, signals, etc.) that have been defined
-across a project. In order for the registry to know of a device, that
-device must first be registered, though there are ways to do this
-automatically.
-
-This allows for a simple way to keep track of the Ophyd devices that were
-created in your project.
-
-```python
-import ophyd
-from ophydregistry import OphydRegistry
-
-# Register the devices when they're created
-registry = OphydRegistry()
-registry.register(ophyd.sim.motor)
-
-# Then elsewhere in your project, use them...
-registry['motor'].set(15.3)
-```
 
 ### Registering Devices
 
