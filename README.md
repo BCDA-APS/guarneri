@@ -16,7 +16,7 @@ provides the following benefits:
 5) Devices can be simulated/mocked by changing a single value in the config file.
 
 
-## Usage
+## Using Guarneri
 
 Let's say **you have some ophyd and ophyd-async devices** defined
 (with type hints) in a file called `devices.py`. This is not
@@ -99,6 +99,9 @@ instance of `MyDevice()` with the name `"device1"` and prefix
 `"255id:"`. This is equivalent to `MyDevice(prefix="255id:",
 name="device1")`.
 
+
+## Using the Ophyd Registry inside the Guarneri
+
 Guarneri also provides a way to keep track of and retrieve, Ophyd objects. 
 That have been registered using guarneri. This allows for a simple way to 
 keep track of the Ophyd devices that were created in your project.
@@ -109,69 +112,6 @@ registry = instrument.devices
 # Then elsewhere in your project, use them...
 registry['motor'].set(15.3)
 ```
-
-## What About Happi?
-
-Happi has a similar goal to Guarneri, but with a different
-scope. While Happi is meant for facility-level configuration (e.g.
-LCLS), Guarneri is aimed at individual beamlines at a synchrotron.
-Happi uses `HappiItem` classes with `ItemInfo`
-objects to describe the devices definitions, while Guarneri uses the
-device classes themselves. Happi provides a python client for adding
-and modifying the devices, while Guarneri uses human-readable
-configuration files.
-
-**Which one is better?** Depends on what you're trying to do. If you
-want a **flexible and scalable** system that **shares devices across a
-facility**, try Happi. If you want a way to **get devices running
-quickly** on your beamline before users show up, try Guarneri.
-
-## Documentation
-
-Sphinx-generated documentation for this project can be found here:
-https://spc-group.github.io/guarneri/
-
-## Installation
-
-The following will download the package and load it into the python environment.
-
-```bash
-pip install guarneri
-```
-
-## Development
-
-```bash
-git clone https://github.com/spc-group/guarneri
-```
-
-*uv* is preferred for managing guarneri. Run the tests (including
-dependencies) with
-
-```bash
-uv run --dev pytest
-```
-
-Build *wheels* with
-
-```bash
-uv build
-```
-
-## Development (uv-free)
-
-First, install the dependencies listed in `dependency-groups.dev` in
-pyproject.toml.
-
-Then install an editable guarneri and run the tests with
-
-```bash
-pip install -e ".[dev]"
-pytest
-```
-
-# Ophyd Registry
-
 ### Registering Devices
 
 There are three ways to have an instrument registry know about a
@@ -185,7 +125,7 @@ By default, a new instrument registry will alert itself to all future
 devices:
 
 ```python
-from ophydregistry import Registry
+from guarneri import Registry
 registry = Registry()
 
 the_device = MyDevice("255id:Dev:", name="my_device")
@@ -217,7 +157,7 @@ decorated to allow the registry to find it:
 
 ```python
 from ophyd import Device
-from ophydregistry import Registry
+from guarneri import Registry
 
 registry = Registry(auto_register=False)
 
@@ -235,7 +175,7 @@ registered.
 
 ```python
 from ophyd import Device
-from ophydregistry import Registry
+from guarneri import Registry
 
 registry = Registry(auto_register=False)
 
@@ -385,17 +325,77 @@ Typhos by simply passing the *use_typhos* argument when creating the
 registry:
 
 ```python
-from ophydregistry import Registry
+from guarneri import Registry
 registry = Registry(use_typos=True)
 ```
 
 or setting the *use_typhos* attribute on an existing registry:
 
 ```python
-from ophydregistry import Registry
+from guarneri import Registry
 registry = Registry()
 registry.use_typhos = True
 ```
 
 If using the typhos registry, calling the *clear()* method on the
 ophyd registry will also clear the Typhos registry.
+
+## What About Happi?
+
+Happi has a similar goal to Guarneri, but with a different
+scope. While Happi is meant for facility-level configuration (e.g.
+LCLS), Guarneri is aimed at individual beamlines at a synchrotron.
+Happi uses `HappiItem` classes with `ItemInfo`
+objects to describe the devices definitions, while Guarneri uses the
+device classes themselves. Happi provides a python client for adding
+and modifying the devices, while Guarneri uses human-readable
+configuration files.
+
+**Which one is better?** Depends on what you're trying to do. If you
+want a **flexible and scalable** system that **shares devices across a
+facility**, try Happi. If you want a way to **get devices running
+quickly** on your beamline before users show up, try Guarneri.
+
+## Documentation
+
+Sphinx-generated documentation for this project can be found here:
+https://spc-group.github.io/guarneri/
+
+## Installation
+
+The following will download the package and load it into the python environment.
+
+```bash
+pip install guarneri
+```
+
+## Development
+
+```bash
+git clone https://github.com/spc-group/guarneri
+```
+
+*uv* is preferred for managing guarneri. Run the tests (including
+dependencies) with
+
+```bash
+uv run --dev pytest
+```
+
+Build *wheels* with
+
+```bash
+uv build
+```
+
+## Development (uv-free)
+
+First, install the dependencies listed in `dependency-groups.dev` in
+pyproject.toml.
+
+Then install an editable guarneri and run the tests with
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
