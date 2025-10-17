@@ -112,7 +112,7 @@ registry = instrument.devices
 # Then elsewhere in your project, use them...
 registry['motor'].set(15.3)
 ```
-### Registering Devices
+### Registering Devices without using
 
 There are three ways to have an instrument registry know about a
 device.
