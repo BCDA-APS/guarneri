@@ -19,10 +19,23 @@ classifiers = [
     "Topic :: System :: Hardware",
 ]
 keywords = []
-dependencies = ["ophyd", "ophyd-async", "ophyd-registry>=2.0.0", "tomlkit", "pyyaml"]
+dependencies = ["ophyd", "ophyd-async", "tomlkit", "pyyaml"]
 
 [dependency-groups]
-dev = ["black", "pytest", "pytest-asyncio", "pytest-mypy", "isort", "pydata-sphinx-theme", "build", "twine", "ruff", "types-PyYAML"]
+dev = [
+    "black",
+ "pytest",
+ "pytest-asyncio",
+ "pytest-mock",
+ "pyepics",
+ "pytest-mypy",
+ "isort",
+ "pydata-sphinx-theme",
+ "build",
+ "twine",
+ "ruff",
+ "types-PyYAML",
+]
 
 [project.urls]
 Homepage = "https://github.com/spc-group/guarneri"
@@ -34,5 +47,5 @@ Homepage = "https://github.com/spc-group/guarneri"
 files = ["src/"]
 
 [[tool.mypy.overrides]]
-module = ["ophyd.*"]
+module = ["ophyd.*", "typhos.*"]
 ignore_missing_imports = true
