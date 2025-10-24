@@ -85,7 +85,7 @@ class Instrument:
         if ignored_classes is None:
             ignored_classes = []
         self.ignored_classes = ignored_classes
-        deco._current_instrument = self
+        deco._instrument = self
 
     def parse_config(self, config_file: IO, config_format: str) -> list[dict]:
         """Parse an instrument configuration file.

@@ -601,7 +601,7 @@ class Registry:
         Usage:
 
         .. code-block:: python
-            
+
             @registry.inject_devices(parameter_name="default_device_name")
             def plan(parameter_name):
                 ...
@@ -614,7 +614,7 @@ class Registry:
             @registry.inject_devices(motor="my_motor")
             def my_plan(motor):
                 assert motor is my_motor
-            
+
             my_motor = Motor(prefix="…", name="my_motor")
             registry.register(my_motor)
 
@@ -629,7 +629,7 @@ class Registry:
             @registry.inject_devices(motor=None)
             def my_plan(motor):
                 assert motor is my_motor
-            
+
             my_motor = Motor(prefix="…", name="my_motor")
             registry.register(my_motor)
 
@@ -644,11 +644,11 @@ class Registry:
         .. code-block:: python
 
             from collections.abc import Sequence
-            
+
             @registry.inject_devices(motors="motors")
             def my_plan(motors: Sequence):
                 assert my_motor in motors
-            
+
             my_motor = Motor(prefix="…", name="my_motor", labels={"motors"})
             registry.register(my_motor)
 
