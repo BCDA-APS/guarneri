@@ -46,6 +46,9 @@ Homepage = "https://github.com/spc-group/guarneri"
 [ tool.mypy ]
 files = ["src/"]
 
+[tool.isort]
+profile = "black"
+
 [[tool.mypy.overrides]]
 module = ["ophyd.*", "typhos.*"]
 ignore_missing_imports = true

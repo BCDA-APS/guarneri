@@ -4,16 +4,27 @@ import logging
 import time
 from collections import OrderedDict
 from collections.abc import Callable, Iterable
-from typing import (Any, Hashable, MutableMapping, Optional, Sequence, TypeVar,
-                    Union, overload)
+from typing import (
+    Any,
+    Hashable,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+    overload,
+)
 from weakref import WeakSet
 
 from ophyd import ophydobj
 
 from guarneri._typing import Device, DeviceQuery, DevicesQuery
 
-from .exceptions import (ComponentNotFound, InvalidComponentLabel,
-                         MultipleComponentsFound)
+from .exceptions import (
+    ComponentNotFound,
+    InvalidComponentLabel,
+    MultipleComponentsFound,
+)
 
 T = TypeVar("T")
 
