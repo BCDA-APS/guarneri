@@ -14,10 +14,11 @@ import tomlkit
 import yaml
 from ophyd.sim import make_fake_device
 from ophyd_async.core import DEFAULT_TIMEOUT, NotConnected
-from .registry import Registry
 
+from . import decorators as deco
 from .exceptions import InvalidConfiguration
 from .helpers import AsyncDevice, Device, Loader, ThreadedDevice, dynamic_import
+from .registry import Registry
 
 log = logging.getLogger(__name__)
 
@@ -83,6 +84,7 @@ class Instrument:
         if ignored_classes is None:
             ignored_classes = []
         self.ignored_classes = ignored_classes
+        deco._instrument = self
 
     def parse_config(self, config_file: IO, config_format: str) -> list[dict]:
         """Parse an instrument configuration file.
