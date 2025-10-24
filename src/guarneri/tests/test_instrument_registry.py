@@ -6,9 +6,9 @@ import pytest
 from ophyd import Device, EpicsMotor, sim
 from ophyd_async.core import Device as AsyncDevice
 from ophyd_async.core import soft_signal_rw
-from ..registry import Registry
 
 from ..exceptions import ComponentNotFound, MultipleComponentsFound
+from ..registry import Registry
 
 
 @pytest.fixture()

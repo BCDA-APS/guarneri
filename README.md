@@ -112,6 +112,7 @@ registry = instrument.devices
 # Then elsewhere in your project, use them...
 registry['motor'].set(15.3)
 ```
+
 ### Registering Devices without using
 
 There are three ways to have an instrument registry know about a
@@ -122,7 +123,7 @@ device.
 3. Register individual objects
 
 By default, a new instrument registry will alert itself to all future
-devices:
+devices (not compatible with ophyd-async):
 
 ```python
 from guarneri import Registry
@@ -231,7 +232,7 @@ enough to retrieve the device. For example, to find the signal
 fine:
 
 ```python
-preset_time = haven.registry.find("vortex_me4_preset_time")
+preset_time = registry.find("vortex_me4_preset_time")
 ```
 
 However, **if the component is lazy** and has not been accessed prior
@@ -249,6 +250,37 @@ component so is not available. Instead, retrieving the device by
 detector ("sim_det"), then access the *cam* attribute, and then cam's
 *gain* attribute. This has the side-effect of instantiating the lazy
 components.
+
+### Automatically Resolving Devices in Plans
+
+Guarneri can inject devices by name or label into functions/plans
+using decorators. The following usage will inject the device named
+"another_motor" into the plan (or use "default_motor" by as a default
+value) so it can be used for scanning.
+
+```python
+@registry.inject_devices(motor="default_motor")
+def my_plan(motor):
+	assert motor is another_motor
+
+registry.register(Motor(prefix="…", name="default_motor"))
+registry.register(Motor(prefix="…", name="another_motor"))
+
+plan = my_plan(motor="another_motor")
+```
+
+This can also be used with bluesky's built-in plans. Providing `None`
+to the decorator tells it to not use a default device if none is
+provided.
+
+```python
+scan = registry.inject_devices(detectors=None)(bp.scan)
+
+# The following is then equivalent to:
+#   plan = scan(detectors=registry.findall("ion_chambers"), …)
+
+plan = scan(detectors="ion_chambers", …)
+```
 
 ### Removing Devices
 

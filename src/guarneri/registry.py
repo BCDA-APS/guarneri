@@ -1,27 +1,19 @@
+import functools
+import inspect
 import logging
 import time
 from collections import OrderedDict
-from collections.abc import Iterable
-from typing import (
-    Hashable,
-    MutableMapping,
-    Optional,
-    Sequence,
-    TypeVar,
-    Union,
-    overload,
-)
+from collections.abc import Callable, Iterable
+from typing import (Any, Hashable, MutableMapping, Optional, Sequence, TypeVar,
+                    Union, overload)
 from weakref import WeakSet
 
 from ophyd import ophydobj
 
 from guarneri._typing import Device, DeviceQuery, DevicesQuery
 
-from .exceptions import (
-    ComponentNotFound,
-    InvalidComponentLabel,
-    MultipleComponentsFound,
-)
+from .exceptions import (ComponentNotFound, InvalidComponentLabel,
+                         MultipleComponentsFound)
 
 T = TypeVar("T")
 
@@ -599,3 +591,98 @@ class Registry:
         for cpt_name, cpt in sub_signals:
             self.register(cpt)
         return component
+
+    def inject_devices(self, **defaults):
+        """A decorator for adding devices from the registry as parameters.
+
+        This can be used to lookup devices for a plan on-demand when
+        the plan is first created.
+
+        Usage:
+
+        .. code-block:: python
+            
+            @registry.inject_devices(parameter_name="default_device_name")
+            def plan(parameter_name):
+                ...
+
+        For example, the following code will lookup the motor named
+        "my_motor" and provide the resolved Motor object to the plan.
+
+        .. code-block:: python
+
+            @registry.inject_devices(motor="my_motor")
+            def my_plan(motor):
+                assert motor is my_motor
+            
+            my_motor = Motor(prefix="…", name="my_motor")
+            registry.register(my_motor)
+
+            plan = my_plan()
+
+        The decorator will also resolve the names of things passed
+        in. If you don't want to look up a default device name (or
+        label), pass `None` as the default device::
+
+        .. code-block:: python
+
+            @registry.inject_devices(motor=None)
+            def my_plan(motor):
+                assert motor is my_motor
+            
+            my_motor = Motor(prefix="…", name="my_motor")
+            registry.register(my_motor)
+
+            plan = my_plan(motor="my_motor")
+
+        It is also possible to **resolve multiple devices**, e.g. by
+        label. If the type annotation for the argument is compatible
+        with a list of items, multiple devices will be provided if
+        available. The following will look up all devices with the
+        label "motors":
+
+        .. code-block:: python
+
+            from collections.abc import Sequence
+            
+            @registry.inject_devices(motors="motors")
+            def my_plan(motors: Sequence):
+                assert my_motor in motors
+            
+            my_motor = Motor(prefix="…", name="my_motor", labels={"motors"})
+            registry.register(my_motor)
+
+            plan = my_plan()
+
+        """
+
+        def decorator(fn: Callable[..., Any]) -> Callable:
+            sig = inspect.signature(fn)
+            findall_return_type = list
+            finders = {
+                name: (
+                    self.findall
+                    if issubclass(findall_return_type, param.annotation)
+                    else self.find
+                )
+                for name, param in sig.parameters.items()
+            }
+
+            @functools.wraps(fn)
+            def inner(*args, **kwargs):
+                # Decide which arguments should be added
+                bound_args = sig.bind_partial(*args, **kwargs)
+                for arg_name, default_value in defaults.items():
+                    find_device = finders[arg_name]
+                    if arg_name in bound_args.arguments:
+                        # Argument was passed in by the client
+                        value = bound_args.arguments[arg_name]
+                        bound_args.arguments[arg_name] = find_device(value)
+                    elif default_value is not None:
+                        # Argument was not passed in; use the default argument
+                        bound_args.arguments[arg_name] = find_device(default_value)
+                return fn(*bound_args.args, **bound_args.kwargs)
+
+            return inner
+
+        return decorator
