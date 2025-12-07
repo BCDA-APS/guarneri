@@ -13,11 +13,12 @@ from typing import IO, Any, TypeVar, cast
 import tomlkit
 import yaml
 from ophyd.sim import make_fake_device
-from ophyd_async.core import DEFAULT_TIMEOUT, NotConnected
-from .registry import Registry
+from ophyd_async.core import DEFAULT_TIMEOUT, NotConnectedError
 
 from .exceptions import InvalidConfiguration
-from .helpers import AsyncDevice, Device, Loader, ThreadedDevice, dynamic_import
+from .helpers import (AsyncDevice, Device, Loader, ThreadedDevice,
+                      dynamic_import)
+from .registry import Registry
 
 log = logging.getLogger(__name__)
 
@@ -398,7 +399,7 @@ class Instrument:
             try:
                 device.wait_for_connection(timeout=0)
             except TimeoutError as exc:
-                exceptions[device.name] = NotConnected(str(exc))
+                exceptions[device.name] = NotConnectedError(str(exc))
         # Re-register devices in case their names or labels changed
         for device in new_devices:
             self.devices.register(device)
@@ -406,7 +407,7 @@ class Instrument:
         if return_exceptions:
             return new_devices, exceptions
         if len(exceptions) > 0:
-            raise NotConnected(exceptions)
+            raise NotConnectedError(exceptions)
         return new_devices
 
     @contextmanager
