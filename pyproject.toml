@@ -10,7 +10,7 @@ authors = [
 ]
 description = "guarneri"
 readme = "README.rst"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: System :: Hardware",
 ]
 keywords = []
-dependencies = ["ophyd", "ophyd-async", "tomlkit", "pyyaml"]
+dependencies = ["ophyd", "ophyd-async>=0.13.5", "tomlkit", "pyyaml"]
 
 [dependency-groups]
 dev = [
