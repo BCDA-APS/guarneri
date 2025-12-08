@@ -16,8 +16,7 @@ from ophyd.sim import make_fake_device
 from ophyd_async.core import DEFAULT_TIMEOUT, NotConnectedError
 
 from .exceptions import InvalidConfiguration
-from .helpers import (AsyncDevice, Device, Loader, ThreadedDevice,
-                      dynamic_import)
+from .helpers import AsyncDevice, Device, Loader, ThreadedDevice, dynamic_import
 from .registry import Registry
 
 log = logging.getLogger(__name__)
