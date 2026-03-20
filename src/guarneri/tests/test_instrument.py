@@ -242,12 +242,7 @@ class TestDuplicateYamlKeys:
 
     def test_error_message_contains_file_name(self, instrument, tmp_path):
         """The error message must reference the file name."""
-        yaml_content = (
-            "ophyd.Signal:\n"
-            "- name: sig1\n"
-            "ophyd.Signal:\n"
-            "- name: sig2\n"
-        )
+        yaml_content = "ophyd.Signal:\n- name: sig1\nophyd.Signal:\n- name: sig2\n"
         yaml_path = tmp_path / "dup_filename.yaml"
         yaml_path.write_text(yaml_content)
 
@@ -259,11 +254,11 @@ class TestDuplicateYamlKeys:
     def test_error_message_contains_line_numbers(self, instrument, tmp_path):
         """The error message must include both line numbers."""
         yaml_content = (
-            "ophyd.Signal:\n"       # line 1
-            "- name: sig1\n"        # line 2
-            "  value: 1.0\n"        # line 3
-            "ophyd.Signal:\n"       # line 4
-            "- name: sig2\n"        # line 5
+            "ophyd.Signal:\n"  # line 1
+            "- name: sig1\n"  # line 2
+            "  value: 1.0\n"  # line 3
+            "ophyd.Signal:\n"  # line 4
+            "- name: sig2\n"  # line 5
         )
         yaml_path = tmp_path / "dup_lines.yaml"
         yaml_path.write_text(yaml_content)
@@ -278,12 +273,7 @@ class TestDuplicateYamlKeys:
 
     def test_error_message_contains_duplicate_key_name(self, instrument, tmp_path):
         """The error message must include the actual duplicated key."""
-        yaml_content = (
-            "ophyd.EpicsMotor:\n"
-            "- name: m1\n"
-            "ophyd.EpicsMotor:\n"
-            "- name: m2\n"
-        )
+        yaml_content = "ophyd.EpicsMotor:\n- name: m1\nophyd.EpicsMotor:\n- name: m2\n"
         yaml_path = tmp_path / "dup_key_name.yaml"
         yaml_path.write_text(yaml_content)
 
@@ -294,11 +284,7 @@ class TestDuplicateYamlKeys:
 
     def test_nested_duplicate_key(self, instrument, tmp_path):
         """Duplicate keys inside a nested mapping are also detected."""
-        yaml_content = (
-            "ophyd.Signal:\n"
-            "- name: sig1\n"
-            "  name: sig1_dup\n"
-        )
+        yaml_content = "ophyd.Signal:\n- name: sig1\n  name: sig1_dup\n"
         yaml_path = tmp_path / "dup_nested.yaml"
         yaml_path.write_text(yaml_content)
 
@@ -325,12 +311,7 @@ class TestDuplicateYamlKeys:
 
     def test_duplicate_key_via_load(self, tmp_path):
         """Duplicate keys are caught when going through the load() path."""
-        yaml_content = (
-            "ophyd.Signal:\n"
-            "- name: sig1\n"
-            "ophyd.Signal:\n"
-            "- name: sig2\n"
-        )
+        yaml_content = "ophyd.Signal:\n- name: sig1\nophyd.Signal:\n- name: sig2\n"
         yaml_path = tmp_path / "dup_load.yaml"
         yaml_path.write_text(yaml_content)
 
