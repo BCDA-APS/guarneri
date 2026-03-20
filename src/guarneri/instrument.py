@@ -15,7 +15,7 @@ import yaml
 from ophyd.sim import make_fake_device
 from ophyd_async.core import DEFAULT_TIMEOUT, NotConnectedError
 
-from .exceptions import InvalidConfiguration
+from .exceptions import DuplicateYamlKey, InvalidConfiguration
 from .helpers import AsyncDevice, Device, Loader, ThreadedDevice, dynamic_import
 from .registry import Registry
 
@@ -26,6 +26,72 @@ instrument = None
 
 
 K = TypeVar("K")
+
+
+def _yaml_safe_load_no_duplicates(stream: IO[str], file_name: str) -> Any:
+    """Load YAML from *stream*, raising on duplicate mapping keys.
+
+    Uses a custom :class:`yaml.SafeLoader` subclass that checks every
+    mapping node for duplicate keys.  When a duplicate is found a
+    :class:`DuplicateYamlKey` exception is raised whose message
+    includes *file_name* and the line numbers of both the first
+    occurrence and the duplicate.
+
+    Parameters
+    ==========
+    stream
+      Readable text stream containing YAML.
+    file_name
+      Name shown in the error message (typically the file path).
+
+    Raises
+    ======
+    DuplicateYamlKey
+      If any mapping contains a duplicate key.
+    """
+
+    class _NoDuplicateKeysLoader(yaml.SafeLoader):
+        """SafeLoader subclass that forbids duplicate mapping keys."""
+
+        pass
+
+    def _check_duplicate_keys(loader, node):  # type: ignore[no-untyped-def]
+        """Construct a mapping, raising on duplicate keys."""
+        seen: dict[Any, yaml.Node] = {}
+        for key_node, _value_node in node.value:
+            key = loader.construct_object(key_node)
+            if key in seen:
+                first_node = seen[key]
+                # YAML lines are 0-indexed in marks; report 1-indexed.
+                first_line = first_node.start_mark.line + 1
+                dup_line = key_node.start_mark.line + 1
+                raise DuplicateYamlKey(
+                    f"Duplicate YAML key {key!r} in file {file_name!r}:"
+                    f" first defined on line {first_line},"
+                    f" redefined on line {dup_line}."
+                )
+            seen[key] = key_node
+        return loader.construct_pairs(node)
+
+    _NoDuplicateKeysLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+        _check_duplicate_keys,
+    )
+
+    # yaml.load returns ordered pairs from _check_duplicate_keys for
+    # each mapping, but we need a dict.  Walk the structure and convert.
+    raw = yaml.load(stream, Loader=_NoDuplicateKeysLoader)  # noqa: S506
+    return _pairs_to_dicts(raw)
+
+
+def _pairs_to_dicts(obj: Any) -> Any:
+    """Recursively convert lists-of-pairs (from construct_pairs) to dicts."""
+    if isinstance(obj, list):
+        # A list of 2-tuples is a mapping produced by construct_pairs.
+        if obj and all(isinstance(item, tuple) and len(item) == 2 for item in obj):
+            return {k: _pairs_to_dicts(v) for k, v in obj}
+        return [_pairs_to_dicts(item) for item in obj]
+    return obj
 
 
 class Instrument:
@@ -132,6 +198,11 @@ class Instrument:
         Produce device definitions from a YAML file.
 
         See ``parse_config()`` for details.
+
+        Raises
+        ======
+        DuplicateYamlKey
+          If any mapping in the YAML file contains duplicate keys.
         """
 
         def yaml_parser(creator, specs):
@@ -145,8 +216,10 @@ class Instrument:
             ]
             return entries
 
+        file_name = getattr(config_file, "name", "<unknown>")
+
         try:
-            config_data = yaml.safe_load(config_file)
+            config_data = _yaml_safe_load_no_duplicates(config_file, file_name)
         except yaml.YAMLError as e:
             log.error("YAML parsing error: %s", str(e))
             raise

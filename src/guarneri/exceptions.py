@@ -20,3 +20,9 @@ class InvalidComponentLabel(TypeError):
     """Registry looked for a component, but the label provided is not vlaid."""
 
     ...
+
+
+class DuplicateYamlKey(ValueError):
+    """A YAML configuration file contains duplicate keys."""
+
+    ...

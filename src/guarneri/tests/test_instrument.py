@@ -215,3 +215,106 @@ def test_load(monkeypatch):
     # Check that the right methods were called
     instrument.parse_toml_file.assert_called_once()
     instrument.make_devices.assert_called_once()
+
+
+# --- Tests for duplicate YAML key detection (issue #33) ---
+
+
+class TestDuplicateYamlKeys:
+    """Duplicate keys in YAML files must raise DuplicateYamlKey."""
+
+    def test_top_level_duplicate_key(self, instrument, tmp_path):
+        """Top-level duplicate keys are detected with file, lines, and key."""
+        yaml_content = (
+            "ophyd.Signal:\n"
+            "- name: sig1\n"
+            "  value: 1.0\n"
+            "ophyd.Signal:\n"
+            "- name: sig2\n"
+            "  value: 2.0\n"
+        )
+        yaml_path = tmp_path / "dup_top.yaml"
+        yaml_path.write_text(yaml_content)
+
+        with open(yaml_path, "rt") as fd:
+            with pytest.raises(exceptions.DuplicateYamlKey, match="ophyd.Signal"):
+                instrument.parse_yaml_file(fd)
+
+    def test_error_message_contains_file_name(self, instrument, tmp_path):
+        """The error message must reference the file name."""
+        yaml_content = "ophyd.Signal:\n- name: sig1\nophyd.Signal:\n- name: sig2\n"
+        yaml_path = tmp_path / "dup_filename.yaml"
+        yaml_path.write_text(yaml_content)
+
+        with open(yaml_path, "rt") as fd:
+            with pytest.raises(exceptions.DuplicateYamlKey) as exc_info:
+                instrument.parse_yaml_file(fd)
+        assert str(yaml_path) in str(exc_info.value)
+
+    def test_error_message_contains_line_numbers(self, instrument, tmp_path):
+        """The error message must include both line numbers."""
+        yaml_content = (
+            "ophyd.Signal:\n"  # line 1
+            "- name: sig1\n"  # line 2
+            "  value: 1.0\n"  # line 3
+            "ophyd.Signal:\n"  # line 4
+            "- name: sig2\n"  # line 5
+        )
+        yaml_path = tmp_path / "dup_lines.yaml"
+        yaml_path.write_text(yaml_content)
+
+        with open(yaml_path, "rt") as fd:
+            with pytest.raises(exceptions.DuplicateYamlKey) as exc_info:
+                instrument.parse_yaml_file(fd)
+        msg = str(exc_info.value)
+        # First occurrence on line 1, duplicate on line 4
+        assert "line 1" in msg
+        assert "line 4" in msg
+
+    def test_error_message_contains_duplicate_key_name(self, instrument, tmp_path):
+        """The error message must include the actual duplicated key."""
+        yaml_content = "ophyd.EpicsMotor:\n- name: m1\nophyd.EpicsMotor:\n- name: m2\n"
+        yaml_path = tmp_path / "dup_key_name.yaml"
+        yaml_path.write_text(yaml_content)
+
+        with open(yaml_path, "rt") as fd:
+            with pytest.raises(exceptions.DuplicateYamlKey) as exc_info:
+                instrument.parse_yaml_file(fd)
+        assert "ophyd.EpicsMotor" in str(exc_info.value)
+
+    def test_nested_duplicate_key(self, instrument, tmp_path):
+        """Duplicate keys inside a nested mapping are also detected."""
+        yaml_content = "ophyd.Signal:\n- name: sig1\n  name: sig1_dup\n"
+        yaml_path = tmp_path / "dup_nested.yaml"
+        yaml_path.write_text(yaml_content)
+
+        with open(yaml_path, "rt") as fd:
+            with pytest.raises(exceptions.DuplicateYamlKey, match="name"):
+                instrument.parse_yaml_file(fd)
+
+    def test_no_duplicate_keys_succeeds(self, instrument, tmp_path):
+        """A valid YAML file without duplicates parses normally."""
+        yaml_content = (
+            "ophyd.Signal:\n"
+            "- name: sig1\n"
+            "  value: 1.0\n"
+            "ophyd.EpicsMotor:\n"
+            "- name: m1\n"
+            "  prefix: IOC:m1\n"
+        )
+        yaml_path = tmp_path / "no_dup.yaml"
+        yaml_path.write_text(yaml_content)
+
+        with open(yaml_path, "rt") as fd:
+            cfg = instrument.parse_yaml_file(fd)
+        assert len(cfg) == 2
+
+    def test_duplicate_key_via_load(self, tmp_path):
+        """Duplicate keys are caught when going through the load() path."""
+        yaml_content = "ophyd.Signal:\n- name: sig1\nophyd.Signal:\n- name: sig2\n"
+        yaml_path = tmp_path / "dup_load.yaml"
+        yaml_path.write_text(yaml_content)
+
+        inst = Instrument({})
+        with pytest.raises(exceptions.DuplicateYamlKey, match="ophyd.Signal"):
+            inst.load(yaml_path)
