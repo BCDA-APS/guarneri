@@ -209,9 +209,29 @@ def test_load(monkeypatch):
     # Mock out the relevant methods to test
     monkeypatch.setattr(instrument, "parse_toml_file", MagicMock())
     monkeypatch.setattr(instrument, "make_devices", MagicMock(return_value=[]))
-    monkeypatch.setenv("HAVEN_CONFIG_FILES", str(toml_file), prepend=False)
     # Execute the loading step
     instrument.load(toml_file, fake=True)
     # Check that the right methods were called
     instrument.parse_toml_file.assert_called_once()
     instrument.make_devices.assert_called_once()
+
+
+def test_load_mapping(instrument):
+    """Check that we can pass a straight mapping, like the output from parsing a TOML file."""
+    instrument.load(
+        {
+            "async_device": [
+                {
+                    "scaler_prefix": "255idc:",
+                    "scaler_channel": 2,
+                    "preamp_prefix": "255idc:",
+                    "voltmeter_prefix": "255idc",
+                    "voltmeter_channel": 3,
+                    "counts_per_volt_second": 1e7,
+                    "name": "It",
+                    "auto_name": False,
+                },
+            ]
+        }
+    )
+    assert instrument.devices["It"].name == "It"

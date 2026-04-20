@@ -1,9 +1,3 @@
-[beamline]
-name = "APS Beamline (sector unknown)"
-# Whether to connect to hardware (true) or use mocked signals (false)
-hardware_is_present = false
-
-
 [[ async_device ]]
 scaler_prefix = "255idcVME:3820:"
 scaler_channel = 2

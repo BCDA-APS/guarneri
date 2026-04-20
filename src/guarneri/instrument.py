@@ -26,6 +26,59 @@ instrument = None
 
 
 K = TypeVar("K")
+T = TypeVar("T")
+
+
+def _tables_to_definitions(
+    tables: Mapping[str, Sequence[Mapping]],
+) -> list[dict[str, Any]]:
+    """Convert tables to device definitions.
+
+    *tables* should match:
+
+    ```
+    {
+      "ophyd_async.epics.motor.Motor": [
+        {
+          "name": "mono_bragg",
+          "prefix": "255idcVME:m1",
+        }
+      ]
+    }
+    ```
+
+    then defitions will match:
+
+    ```
+    [
+      {
+        "device_class": "ophyd_async.epics.motor.Motor",
+        "args": (),
+        "kwargs": {"name": "mono_bragg", "prefix": "255idcVME:m1"},
+      },
+    ]
+    ```
+    """
+
+    def yaml_parser(creator, specs):
+        entries = [
+            {
+                "device_class": creator,
+                "args": (),  # ALL specs are kwargs!
+                "kwargs": table,
+            }
+            for table in specs
+        ]
+        return entries
+
+    devices = [
+        device
+        # parse the file using already loaded config data
+        for k, v in tables.items()
+        # each support type (class, factory, function, ...)
+        for device in yaml_parser(k, v)
+    ]
+    return devices
 
 
 class Instrument:
@@ -134,17 +187,6 @@ class Instrument:
         See ``parse_config()`` for details.
         """
 
-        def yaml_parser(creator, specs):
-            entries = [
-                {
-                    "device_class": creator,
-                    "args": (),  # ALL specs are kwargs!
-                    "kwargs": table,
-                }
-                for table in specs
-            ]
-            return entries
-
         try:
             config_data = yaml.safe_load(config_file)
         except yaml.YAMLError as e:
@@ -160,13 +202,7 @@ class Instrument:
             raise ValueError(f"Invalid device file format in {config_file}")
 
         try:
-            devices = [
-                device
-                # parse the file using already loaded config data
-                for k, v in config_data.items()
-                # each support type (class, factory, function, ...)
-                for device in yaml_parser(k, v)
-            ]
+            devices = _tables_to_definitions(config_data)
         except Exception as e:
             log.error(
                 "Error parsing device specifications in %s: %s", config_file, str(e)
@@ -181,22 +217,20 @@ class Instrument:
 
         """
         # Load the file from disk
-        cfg = tomlkit.load(config_file)
+        try:
+            config_data = tomlkit.load(config_file)
+        except tomlkit.exceptions.ParseError as e:
+            log.error("TOML parsing error: %s", str(e))
+            raise
         # Convert file contents to device definitions
-        device_defns = []
-        sections = {
-            key: val for key, val in cfg.items() if isinstance(val, tomlkit.items.AoT)
-        }
-        tables = [(cls, table) for cls, aot in sections.items() for table in aot]
-        device_defns = [
-            {
-                "device_class": class_name,
-                "args": (),
-                "kwargs": table,
-            }
-            for class_name, table in tables
-        ]
-        return device_defns
+        try:
+            devices = _tables_to_definitions(config_data)
+        except Exception as e:
+            log.error(
+                "Error parsing device specifications in %s: %s", config_file, str(e)
+            )
+            raise
+        return devices
 
     def make_devices(self, defns: Sequence[Mapping], fake: bool) -> list[Device]:
         """Create Device instances based on device definitions.
@@ -441,7 +475,7 @@ class Instrument:
 
     def load(
         self,
-        config_file: Path | str | IO,
+        config_file: Path | str | IO | Mapping,
         *,
         config_format: str | None = None,
         fake: bool = False,
@@ -473,8 +507,12 @@ class Instrument:
         old_ignored = self.ignored_classes
         # Decide which format to use
         # Parse device configuration files
-        with self.open_config_file(config_file, config_format) as (fd, fmt):
-            device_defns = self.parse_config(fd, config_format=fmt)
+        if isinstance(config_file, Mapping):
+            # It's already the definitions, no parsing needed
+            device_defns = _tables_to_definitions(config_file)
+        else:
+            with self.open_config_file(config_file, config_format) as (fd, fmt):
+                device_defns = self.parse_config(fd, config_format=fmt)
         # Temprary override of device classes
         if device_classes is not None:
             self.device_classes = device_classes
