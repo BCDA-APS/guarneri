@@ -26,7 +26,6 @@ instrument = None
 
 
 K = TypeVar("K")
-T = TypeVar("T")
 
 
 def _tables_to_definitions(
