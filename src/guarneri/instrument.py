@@ -488,8 +488,9 @@ class Instrument:
         Parameters
         ==========
         config_file
-          A file path that will be loaded. Can be either a path to a
-          file, or the open file object itself.
+          A file path that will be loaded. Can be a path to a file,
+          the open file object itself, or a mapping containing the
+          contents that would be parsed from such a file.
         config_format
           Which kind of config file is in use. If ``None``, the format
           will be interpreted from the file path.
@@ -500,6 +501,42 @@ class Instrument:
           A temporary set of device classes to use for this call
           only. Overrides any device classes given during
           initalization.
+
+        The *config_file* argument can be any one of the following:
+
+        A pathlib.Path object
+        : This path should point to the file to be loaded, in one of
+        the supported formats (e.g. YAML or TOML).
+
+        A string
+        : Similar to pathlib.Path.
+
+        An open File IO object.
+        : Similar to pathlib.Path, but already open for reading. Could
+        also be a StringIO object.
+
+        A Mapping object
+        : Dictionary-like object that mirrors what is parsed from a
+        TOML/YAML/etc file.
+
+        In all cases, the structure of the resulting parsed data should be:
+
+        ```python
+        {
+            "path.to.device.class": [
+                {
+                    "name": "deviceA",
+                    "prefix": "255idcVME:myDevice",
+                    ...  # Other device parameters here
+                },
+                {
+                    "name": "deviceB",
+                    "prefix": "255idcVME:myDevice2",
+                    ...  # Other device parameters here
+                }
+            ]
+        }
+        ```
 
         """
         # Load the instrument from config files
